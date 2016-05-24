@@ -154,11 +154,7 @@ module types
   type, public :: T_JACKKNIFE
     real (kind=T_REAL) :: rEstimate
     real (kind=T_REAL) :: rEstimate_SQ
-
-
   end type T_JACKKNIFE
-
-
 
   type, public :: T_BEALE_STATS
     integer (kind=T_INT) :: iStartDate
@@ -822,7 +818,7 @@ subroutine CleanUp ( s )
   end do
 
   s=""
-  s = TRIM(sTemp)
+  s = trim(sTemp)
 
   return
 end subroutine CleanUp

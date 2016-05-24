@@ -161,12 +161,12 @@ subroutine pikaia_driver(pConfig, pBestConfig)
        pConfig%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, &
          kind=T_REAL))
 
-  sBuf = TRIM(pConc(1)%sTribName)//"_"//TRIM(pConc(1)%sConstituentName)
+  sBuf = trim(pConc(1)%sTribName)//"_"//trim(pConc(1)%sConstituentName)
 
   write(LU_STATS_OUT,FMT="(a,a,i4,5a,4(f16.2,a),500a)") &
-    TRIM(sBuf),sTab, &
+    trim(sBuf),sTab, &
     iNumStrata, sTab,&
-    TRIM(sStartDate),sTab,TRIM(sEndDate),sTab, &
+    trim(sStartDate),sTab,trim(sEndDate),sTab, &
     pConfig%rCombinedLoad, sTab, pConfig%rCombinedRMSE, sTab, &
     pConfig%rCombinedEffectiveDegreesFreedom, sTab, &
     pConfig%rCombinedLoadCI, sTab, &
@@ -253,11 +253,11 @@ subroutine pikaia_driver(pConfig, pBestConfig)
 !       pConfig%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, &
 !         kind=T_REAL))
 
-    sBuf = TRIM(pConc(1)%sTribName)//"_"//TRIM(pConc(1)%sConstituentName)
+    sBuf = trim(pConc(1)%sTribName)//"_"//trim(pConc(1)%sConstituentName)
 
     write(LU_STATS_OUT,FMT="(a,a,i4,5a,4(f14.2,a),f14.2,500a)") &
-      TRIM(sBuf),sTab,iNumStrata, sTab,&
-      TRIM(sStartDate),sTab,TRIM(sEndDate),sTab, &
+      trim(sBuf),sTab,iNumStrata, sTab,&
+      trim(sStartDate),sTab,trim(sEndDate),sTab, &
        pConfig%rCombinedLoad, sTab, pConfig%rCombinedLoadCI, sTab, &
        pConfig%rCombinedLoadAnnualized, sTab, &
        pConfig%rCombinedEffectiveDegreesFreedom, sTab, &

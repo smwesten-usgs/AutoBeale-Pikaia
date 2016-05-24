@@ -139,7 +139,7 @@ subroutine read_data(pConfig, pFlow, pConc)
       call Chomp_tab( sRecord, pFlow(i)%sStationID )
       call Chomp_tab( sRecord, pFlow(i)%sDate )
 
-      call Assert(LOGICAL(LEN_TRIM(pFlow(i)%sDate)>0,kind=T_LOGICAL), &
+      call Assert(LOGICAL(len_trim(pFlow(i)%sDate)>0,kind=T_LOGICAL), &
         "Error reading date string in flow file;" &
         //" have you specified the appropriate flow file input format?")
 
@@ -185,13 +185,13 @@ subroutine read_data(pConfig, pFlow, pConc)
 !   USGS	040851385	2005-08-01	1970	Ae
 !   USGS	040851385	2005-08-02	2050	Ae
 
-	write(LU_STD_OUT,FMT="(i3,': 'a10,1x,i9,1x,f12.4)") i,TRIM(sDateStr), &
+	write(LU_STD_OUT,FMT="(i3,': 'a10,1x,i9,1x,f12.4)") i,trim(sDateStr), &
 	   pFlow(i)%iJulianDay, rf_Q_disp(pConfig,pFlow(i)%rFlow)
 
     flush(LU_STD_OUT)
 
     if(pFlow(i)%rFlow < 0.0) then
-      write (*,*) "Missing value code for flow on ",TRIM(sDateStr), &
+      write (*,*) "Missing value code for flow on ",trim(sDateStr), &
         ". There MUST be a flow for every day of the year!"// &
         " Aborting this run!"
       stop
@@ -211,10 +211,10 @@ subroutine read_data(pConfig, pFlow, pConc)
   ! populate the starting and ending date strings
   write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") &
     iB_Month,iB_Day,iB_Year
-  pConfig%sStartDate = TRIM(sBuf)
+  pConfig%sStartDate = trim(sBuf)
   write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") &
     iE_Month,iE_Day,iE_Year
-  pConfig%sEndDate = TRIM(sBuf)
+  pConfig%sEndDate = trim(sBuf)
 
   pConfig%rTotalFlow=SUM(pFlow%rFlow) * 86400_T_REAL    ! cubic meters of water
   pConfig%rTotalFlowAnnualized =  pConfig%rTotalFlow * 365_T_REAL &
@@ -266,11 +266,11 @@ subroutine read_data(pConfig, pFlow, pConc)
       read(pConc(i)%sDate(5:6),FMT=*) pConc(i)%iMonth
       read(pConc(i)%sDate(7:8),FMT=*) pConc(i)%iDay
 
-      if(LEN_TRIM(pConc(i)%sDate(9:10))>0) &
+      if(len_trim(pConc(i)%sDate(9:10))>0) &
         read(pConc(i)%sDate(9:10),FMT=*) pConc(i)%iHour
 
 
-      if(LEN_TRIM(pConc(i)%sDate(11:12))>0) &
+      if(len_trim(pConc(i)%sDate(11:12))>0) &
         read(pConc(i)%sDate(11:12),FMT=*) pConc(i)%iMinute
 
       write(pConc(i)%sDate,FMT="(i4,i2.2,i2.2)") pConc(i)%iYear, &
@@ -310,37 +310,37 @@ subroutine read_data(pConfig, pFlow, pConc)
 !      read (sItem,FMT=*,iostat=iStat) pConc(i)%sConstituentName
 !      call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
 !        "Internal read error: consitutent name;" &
-!         //" read in "//TRIM(sItem))
+!         //" read in "//trim(sItem))
 
       call Chomp_tab(sRecord,sItem)
       read (sItem,FMT=*,iostat=iStat) pConc(i)%iMonth
       call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
         "Internal read error: month value;" &
-         //" read in "//TRIM(sItem))
+         //" read in "//trim(sItem))
 
       call Chomp_tab(sRecord,sItem)
       read (sItem,FMT=*,iostat=iStat) pConc(i)%iDay
       call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
         "Internal read error: day value;" &
-         //" read in "//TRIM(sItem))
+         //" read in "//trim(sItem))
 
       call Chomp_tab(sRecord,sItem)
       read (sItem,FMT=*,iostat=iStat) pConc(i)%iYear
       call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
         "Internal read error: year value;" &
-         //" read in "//TRIM(sItem))
+         //" read in "//trim(sItem))
 
       call Chomp_tab(sRecord,sItem)
       read (sItem,FMT=*,iostat=iStat) pConc(i)%iHour
       call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
         "Internal read error: hour value;" &
-         //" read in "//TRIM(sItem))
+         //" read in "//trim(sItem))
 
       call Chomp_tab(sRecord,sItem)
       read (sItem,FMT=*,iostat=iStat) pConc(i)%iMinute
       call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
         "Internal read error: minute value;" &
-         //" read in "//TRIM(sItem))
+         //" read in "//trim(sItem))
 
       write(pConc(i)%sDate,FMT="(i4,i2.2,i2.2)") pConc(i)%iYear, &
         pConc(i)%iMonth,pConc(i)%iDay
@@ -363,22 +363,22 @@ subroutine read_data(pConfig, pFlow, pConc)
       pConc(i)%sConcUnits = sItem
 
       if(i==1) then
-        if(TRIM(pConc(i)%sConcUnits)=="mg/L" &
-            .or. TRIM(pConc(i)%sConcUnits)=="mg/l") then
+        if(trim(pConc(i)%sConcUnits)=="mg/L" &
+            .or. trim(pConc(i)%sConcUnits)=="mg/l") then
           pConfig%iConcUnitsCode = iMILLIGRAMS_PER_LITER
-        elseif(TRIM(pConc(i)%sConcUnits)=="g/L" &
-            .or. TRIM(pConc(i)%sConcUnits)=="gg/l") then
+        elseif(trim(pConc(i)%sConcUnits)=="g/L" &
+            .or. trim(pConc(i)%sConcUnits)=="gg/l") then
           pConfig%iConcUnitsCode = iGRAMS_PER_LITER
-        elseif(TRIM(pConc(i)%sConcUnits)=="ug/L" &
-            .or. TRIM(pConc(i)%sConcUnits)=="ug/l") then
+        elseif(trim(pConc(i)%sConcUnits)=="ug/L" &
+            .or. trim(pConc(i)%sConcUnits)=="ug/l") then
           pConfig%iConcUnitsCode = iMICROGRAMS_PER_LITER
-        elseif(TRIM(pConc(i)%sConcUnits)=="ng/L" &
-            .or. TRIM(pConc(i)%sConcUnits)=="ng/l") then
+        elseif(trim(pConc(i)%sConcUnits)=="ng/L" &
+            .or. trim(pConc(i)%sConcUnits)=="ng/l") then
           pConfig%iConcUnitsCode = iNANOGRAMS_PER_LITER
         else
         call Assert(lFALSE, &
           "No known units assigned in the concentration file;" &
-          //" read in '"//TRIM(pConc(i)%sConcUnits)//"'")
+          //" read in '"//trim(pConc(i)%sConcUnits)//"'")
         end if
       end if
 
@@ -765,9 +765,9 @@ subroutine clean_flow_data(pFlow)
     call gregorian_date(iJulianDay,iYYYY, iMM, iDD)
     write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") iMM, iDD, iYYYY
     call Assert(LOGICAL(iJulianDay + 1 == iNextJulianDay, kind=T_LOGICAL), &
-      'Flow missing or out of order: '//TRIM(sBuf))
+      'Flow missing or out of order: '//trim(sBuf))
     call Assert(LOGICAL(pFlow(i)%rFlow>rZERO, kind=T_LOGICAL), &
-      'Missing flow value (negative value detected): '//TRIM(sBuf))
+      'Missing flow value (negative value detected): '//trim(sBuf))
 
   end do
 
@@ -881,13 +881,13 @@ subroutine calc_daily_load(pFlow,pConc,pConfig)
 
     write(LU_STD_OUT,FMT="(i2.2,'/',i2.2,'/',i4,': ',3(a,1x))") &
       pConc(i)%iMonth,pConc(i)%iDay,pConc(i)%iYear, &
-      TRIM(sf_Q_units(pConfig,rFlow)), &
-      TRIM(sf_C_units(pConfig,pConc(i)%rConc)), &
-      TRIM(sf_L_units(pConfig,pConc(i)%rDailyLoad))
+      trim(sf_Q_units(pConfig,rFlow)), &
+      trim(sf_C_units(pConfig,pConc(i)%rConc)), &
+      trim(sf_L_units(pConfig,pConc(i)%rDailyLoad))
 
     write(LU_LOADS_OUT,FMT="(a,',',i2.2,'/',i2.2,'/',i4,',',F12.4,','," &
          //"2(G14.4,','),G14.4)") &
-      TRIM(pConc(i)%sTribName), &
+      trim(pConc(i)%sTribName), &
       pConc(i)%iMonth,pConc(i)%iDay,pConc(i)%iYear, &
       rYearFrac, &
       rFlow, &
@@ -1006,24 +1006,24 @@ subroutine monthly_stats(iLU,pFlow,pConc,pConfig)
 
     if(rConcMean>0) then
       write(iLU,FMT="('mean:',t10,3(a20,1x))") &
-         TRIM(sf_Q_units(pConfig,rFlowMean)),&
-         TRIM(sf_C_units(pConfig,rConcMean)), &
-         TRIM(sf_L_units(pConfig,rLoadMean))
+         trim(sf_Q_units(pConfig,rFlowMean)),&
+         trim(sf_C_units(pConfig,rConcMean)), &
+         trim(sf_L_units(pConfig,rLoadMean))
       write(iLU,FMT="('minimum:',t10,3(a20,1x))") &
-         TRIM(sf_Q_units(pConfig,rFlowMin)),&
-         TRIM(sf_C_units(pConfig,rConcMin)), &
-         TRIM(sf_L_units(pConfig,rLoadMin))
+         trim(sf_Q_units(pConfig,rFlowMin)),&
+         trim(sf_C_units(pConfig,rConcMin)), &
+         trim(sf_L_units(pConfig,rLoadMin))
       write(iLU,FMT="('maximum:',t10,3(a20,1x))") &
-         TRIM(sf_Q_units(pConfig,rFlowMax)),&
-         TRIM(sf_C_units(pConfig,rConcMax)), &
-         TRIM(sf_L_units(pConfig,rLoadMax))
+         trim(sf_Q_units(pConfig,rFlowMax)),&
+         trim(sf_C_units(pConfig,rConcMax)), &
+         trim(sf_L_units(pConfig,rLoadMax))
     else
       write(iLU,FMT="('mean:',t10,a20)") &
-        TRIM(sf_Q_units(pConfig,rFlowMean))
+        trim(sf_Q_units(pConfig,rFlowMean))
       write(iLU,FMT="('minimum:',t10,a20)") &
-        TRIM(sf_Q_units(pConfig,rFlowMin))
+        trim(sf_Q_units(pConfig,rFlowMin))
       write(iLU,FMT="('maximum:',t10,a20)") &
-        TRIM(sf_Q_units(pConfig,rFlowMax))
+        trim(sf_Q_units(pConfig,rFlowMax))
     end if
     write(iLU,FMT="(a)") ""
 
@@ -1472,7 +1472,7 @@ subroutine print_strata_stats(pConfig, pB, pFlow, pConc, iStrataNumber, iLU)
   write(iLU, FMT=*) " "
 
   write(iLU,FMT="(t7,'mean stratum FLOW: ',t48,a)") &
-     TRIM(sf_Q_units(pConfig,pB%rMeanFlow))
+     trim(sf_Q_units(pConfig,pB%rMeanFlow))
 
   write(iLU,FMT="(t7,'RATIO stratum FLOW to sample FLOW: ',t48,f12.2)") &
      pB%rMeanFlow / pB%rMeanSampleFlow
@@ -1502,9 +1502,9 @@ subroutine print_strata_stats(pConfig, pB, pFlow, pConc, iStrataNumber, iLU)
 
         write(iLU,FMT="(t4,i2.2,'/',i2.2,'/',i4.4,4(a20,2x))") &
           iMonth,iDay,iYear, &
-               TRIM(sf_Q_units(pConfig,pConc(i)%rFlow)), &
-               TRIM(sf_C_units(pConfig,pConc(i)%rConc)), &
-               TRIM(sf_L_units(pConfig,pConc(i)%rDailyLoad))
+               trim(sf_Q_units(pConfig,pConc(i)%rFlow)), &
+               trim(sf_C_units(pConfig,pConc(i)%rConc)), &
+               trim(sf_L_units(pConfig,pConc(i)%rDailyLoad))
 
       end if
 
@@ -1514,9 +1514,9 @@ subroutine print_strata_stats(pConfig, pB, pFlow, pConc, iStrataNumber, iLU)
       '-------------','-------------','-------------'
 
     write(iLU,FMT="(t4,'    MEAN: ',4(a20,2x))") &
-      TRIM(sf_Q_units(pConfig,pB%rMeanSampleFlow)), &
-      TRIM(sf_C_units(pConfig,pB%rMeanSampleConc)), &
-      TRIM(sf_L_units(pConfig,pB%rMeanSampleLoad))
+      trim(sf_Q_units(pConfig,pB%rMeanSampleFlow)), &
+      trim(sf_C_units(pConfig,pB%rMeanSampleConc)), &
+      trim(sf_L_units(pConfig,pB%rMeanSampleLoad))
 
     write(iLU, FMT=*) " "
 
@@ -1526,47 +1526,47 @@ subroutine print_strata_stats(pConfig, pB, pFlow, pConc, iStrataNumber, iLU)
 
     write(iLU, &
       FMT="(t4,'Biased DAILY load estimate for STRATUM: ',t60,a)") &
-         TRIM(sf_L_units(pConfig,pB%rDailyBiasedLoadEstimate))
+         trim(sf_L_units(pConfig,pB%rDailyBiasedLoadEstimate))
 
   end if
 
   write(iLU, &
      FMT="(t4,'Corrected DAILY load estimate for STRATUM: ',t60,a)") &
-        TRIM(sf_L_units(pConfig,pB%rDailyCorrectedLoadEstimate))
+        trim(sf_L_units(pConfig,pB%rDailyCorrectedLoadEstimate))
 
   write(iLU, &
      FMT="(t4,'CI for corrected DAILY load estimate for STRATUM: ',t60,a)") &
-        TRIM(sf_L_units(pConfig,pB%rDailyLoadCI))
+        trim(sf_L_units(pConfig,pB%rDailyLoadCI))
 
   write(iLU, FMT=*) " "
 
   write(iLU, &
      FMT="(t4,'MSE estimate for DAILY load estimate for STRATUM: ',t60,a)") &
-        TRIM(sf_L2_units(pConfig,pB%rDailyMeanSquareError))
+        trim(sf_L2_units(pConfig,pB%rDailyMeanSquareError))
 
   write(iLU, &
      FMT="(t4,'RMSE estimate for DAILY load estimate for STRATUM: ',t60,a)") &
-        TRIM(sf_L_units(pConfig,sqrt(pB%rDailyMeanSquareError)))
+        trim(sf_L_units(pConfig,sqrt(pB%rDailyMeanSquareError)))
 
   write(iLU, FMT=*) " "
 
   write(iLU, &
      FMT="(t4,'Corrected load estimate for STRATUM: ',t60,a)") &
-        TRIM(sf_L_units(pConfig,pB%rStratumCorrectedLoad))
+        trim(sf_L_units(pConfig,pB%rStratumCorrectedLoad))
 
   write(iLU, &
      FMT="(t4,'CI for load estimate for STRATUM: ',t60,a)") &
-        TRIM(sf_L_units(pConfig,pB%rStratumLoadCI))
+        trim(sf_L_units(pConfig,pB%rStratumLoadCI))
 
   write(iLU, FMT=*) " "
 
   write(iLU, &
      FMT="(t4,'MSE estimate for load estimate for STRATUM: ',t60,a)") &
-        TRIM(sf_L2_units(pConfig,pB%rStratumMeanSquareError))
+        trim(sf_L2_units(pConfig,pB%rStratumMeanSquareError))
 
   write(iLU, &
      FMT="(t4,'RMSE estimate for load estimate for STRATUM: ',t60,a)") &
-        TRIM(sf_L_units(pConfig,sqrt(pB%rStratumMeanSquareError)))
+        trim(sf_L_units(pConfig,sqrt(pB%rStratumMeanSquareError)))
 
   write(iLU, FMT=*) " "
 
@@ -1732,12 +1732,12 @@ subroutine print_short_report(pConfig, pConc)
 
     write(LU_SHORT_RPT, &
       FMT="(10a,i4,a,f18.2,a,a,a,5(f18.2,a),ES16.4,a,3(f18.2,a),i10)") &
-        TRIM(pConfig%sFlowFileName),sTab,TRIM(pConfig%sConcFileName),sTab,&
-        TRIM(pConc(1)%sConstituentName), sTab, &
-        TRIM(pConfig%sStartDate), sTab, TRIM(pConfig%sEndDate), sTab, &  !10
+        trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,&
+        trim(pConc(1)%sConstituentName), sTab, &
+        trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab, &  !10
         pConfig%iMaxNumStrata,sTab,pConfig%rCombinedLoad &
           / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor,sTab, &
-        TRIM(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab, &
+        trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab, &
         pConfig%rCombinedLoadCI &
           / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab, &
         pConfig%rCombinedLoadAnnualized &
@@ -1757,11 +1757,11 @@ subroutine print_short_report(pConfig, pConc)
 
 !    write(LU_SHORT_RPT, &
 !      FMT="(10a,i4,a,f18.2,a,a,a,3(f18.2,a),ES16.4,a,3(f18.2,a),i10)") &
-!        TRIM(pConfig%sFlowFileName),sTab,TRIM(pConfig%sConcFileName),sTab,&
-!        TRIM(pConc(1)%sConstituentName), sTab, &
-!        TRIM(pConfig%sStartDate), sTab, TRIM(pConfig%sEndDate), sTab, &
+!        trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,&
+!        trim(pConc(1)%sConstituentName), sTab, &
+!        trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab, &
 !        pConfig%iMaxNumStrata,sTab,pConfig%rCombinedLoad,sTab, &
-!        TRIM(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab, &
+!        trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab, &
 !        pConfig%rCombinedLoadCI, sTab, &
 !        pConfig%rCombinedLoadAnnualized, sTab, &
 !        pConfig%rCombinedLoadAnnualizedCI, sTab, &
@@ -1814,20 +1814,20 @@ subroutine print_strata_summary(pConfig, iLU)
 
   write(iLU,&
     FMT="('    COMBINED LOAD:',t31,a25)") &
-      TRIM(sf_L_units(pConfig,pConfig%rCombinedLoad))
+      trim(sf_L_units(pConfig,pConfig%rCombinedLoad))
   write(iLU,&
     FMT="('    CONFIDENCE INTERVAL:',t31,a25)") &
-      TRIM(sf_L_units(pConfig,pConfig%rCombinedLoadCI))
+      trim(sf_L_units(pConfig,pConfig%rCombinedLoadCI))
 
   write(iLU,FMT=*) " "
 
   write(iLU,&
     FMT="('    COMBINED LOAD (PER YEAR):',t31,a25,a3)") &
-      TRIM(sf_L_units(pConfig,pConfig%rCombinedLoadAnnualized)),'/yr'
+      trim(sf_L_units(pConfig,pConfig%rCombinedLoadAnnualized)),'/yr'
 
   write(iLU,&
     FMT="('    COMBINED LOAD CI:',t31,a25,a3)") &
-      TRIM(sf_L_units(pConfig,pConfig%rCombinedLoadAnnualizedCI)),'/yr'
+      trim(sf_L_units(pConfig,pConfig%rCombinedLoadAnnualizedCI)),'/yr'
 
   write(iLU,&
     FMT="('    TOTAL ANNNUALIZED FLOW:',t31,ES16.4,a)") &
@@ -1837,10 +1837,10 @@ subroutine print_strata_summary(pConfig, iLU)
 
   write(iLU,&
     FMT="('    COMBINED MSE:',t31,a28)") &
-      TRIM(sf_L2_units(pConfig,pConfig%rCombinedMSE))
+      trim(sf_L2_units(pConfig,pConfig%rCombinedMSE))
   write(iLU,&
     FMT="('    COMBINED RMSE:',t31,a25)") &
-      TRIM(sf_L_units(pConfig,pConfig%rCombinedRMSE))
+      trim(sf_L_units(pConfig,pConfig%rCombinedRMSE))
 
   write(iLU,&
     FMT="('    COMBINED DEGREES FREEDOM:',t31,13x,f12.2)") &
@@ -1898,11 +1898,11 @@ function sf_Q_units(pConfig,rValue)  result(sQ_w_units)
 
   if(rConvertedValue > 1.E+10 .or. rConvertedValue < 1.0E-1) then
 
-    write(sQ_w_units,FMT="(g14.3,1x,a)") rConvertedValue, TRIM(sUnits)
+    write(sQ_w_units,FMT="(g14.3,1x,a)") rConvertedValue, trim(sUnits)
 
   else
 
-    write(sQ_w_units,FMT="(f14.1,1x,a)") rConvertedValue, TRIM(sUnits)
+    write(sQ_w_units,FMT="(f14.1,1x,a)") rConvertedValue, trim(sUnits)
 
   end if
 
@@ -1931,11 +1931,11 @@ function sf_C_units(pConfig,rValue)  result(sC_w_units)
 
   if(rConvertedValue > 1.E+8 .or. rConvertedValue < 1.0E-3) then
 
-    write(sC_w_units,FMT="(g14.3,1x,a)") rConvertedValue, TRIM(sUnits)
+    write(sC_w_units,FMT="(g14.3,1x,a)") rConvertedValue, trim(sUnits)
 
   else
 
-    write(sC_w_units,FMT="(f14.5,1x,a)") rConvertedValue, TRIM(sUnits)
+    write(sC_w_units,FMT="(f14.5,1x,a)") rConvertedValue, trim(sUnits)
 
   end if
 
@@ -1975,7 +1975,7 @@ function sf_L_units(pConfig,rValue)  result(sL_w_units)
 
   end if
 
-  sL_w_units = TRIM(sL_w_units)//" "//TRIM(sUnits)
+  sL_w_units = trim(sL_w_units)//" "//trim(sUnits)
 
   return
 
@@ -1997,19 +1997,19 @@ function sf_L2_units(pConfig,rValue)  result(sL2_w_units)
   rConvertedValue = rValue / &
      (LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor**2)
 
-  sUnits = TRIM(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits)//"**2"
+  sUnits = trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits)//"**2"
 
   if(rConvertedValue > 1.E+3 .and. rConvertedValue <= 1.0E+7) then
 
-    write(sL2_w_units,FMT="(f14.0,1x,a)") rConvertedValue, TRIM(sUnits)
+    write(sL2_w_units,FMT="(f14.0,1x,a)") rConvertedValue, trim(sUnits)
 
   elseif(rConvertedValue > 10. .and. rConvertedValue <= 1.0E+3) then
 
-    write(sL2_w_units,FMT="(f14.1,1x,a)") rConvertedValue, TRIM(sUnits)
+    write(sL2_w_units,FMT="(f14.1,1x,a)") rConvertedValue, trim(sUnits)
 
   else  ! either really small or really big - allow scientific notation
 
-    write(sL2_w_units,FMT="(g14.2,1x,a)") rConvertedValue, TRIM(sUnits)
+    write(sL2_w_units,FMT="(g14.2,1x,a)") rConvertedValue, trim(sUnits)
 
   end if
 
@@ -2018,370 +2018,5 @@ function sf_L2_units(pConfig,rValue)  result(sL2_w_units)
 end function sf_L2_units
 
 !----------------------------------------------------------------------
-
-subroutine write_R_script(pConfig,pBestConfig,pFlow,pConc)
-
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                      ! program options, flags, and other settings
-
-  type (T_CONFIG), pointer :: pBestConfig ! pointer to data structure that contains
-                                      ! program options, flags, and other settings
-
-  type (T_FLOW), dimension(:), pointer :: pFlow
-  type (T_CONC), dimension(:), pointer :: pConc
-
-  character(len=256) :: s_WD = ""
-  character(len=256) :: s_RD = ""
-  character(len=1) :: sQt = CHAR(34)   ! ASCII for "
-  character(len=1) :: sPct = CHAR(37)  ! ASCII for % sign
-  character(len=8) :: sPM = CHAR(34)//" %+-% "//CHAR(34)
-  character(len=256) :: sUnits, sSite, sConstituent,sOutputFilePrefix
-  character(len=256) :: sR_ScriptName, sPDF_PNG_Prefix
-  character(len=256) :: sConstituentAllCaps, sAxisLabel, sSubTitle
-  integer (kind=T_INT) :: i, j, iCount,iPos, iStat
-  integer (kind=T_INT) :: iBMonth,iBDay,iBYear
-  integer (kind=T_INT) :: iEMonth,iEDay,iEYear
-  integer (kind=T_INT) :: iMonth,iDay,iYear
-  real (kind=T_REAL) :: rOffset,rMaxConc
-
-  iBMonth = pFlow(1)%iMonth
-  iBDay = pFlow(1)%iDay
-  iBYear = pFlow(1)%iYear
-
-  iEMonth = pFlow(size(pFlow%rFlow))%iMonth
-  iEDay = pFlow(size(pFlow%rFlow))%iDay
-  iEYear = pFlow(size(pFlow%rFlow))%iYear
-
-  iCount = 0
-  iPos = 0
-
-  rMaxConc = MAXVAL(pConc%rConc)*1.1 &
-     / CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor
-
-  rOffset = 0.03 * rMaxConc
-
-  sSite=pConc(1)%sTribName
-  sConstituent = pConc(1)%sConstituentName
-  sConstituentAllCaps = sConstituent
-  call Uppercase(sConstituentAllCaps)
-
-  if(pBestConfig%lJackknife) then
-
-  write(sSubTitle,FMT="('Load: ',3a,5x,'RMSE: ',a," &
-    //"5x,'Annual Load: ',3a,5x,'Annual Load (jackknife): ',3a)") &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoad))), &
-    sPm, &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadCI))), &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedRMSE))), &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadAnnualized))), &
-    sPm, &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadAnnualizedCI))), &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rJackCombinedLoadAnnualized))), &
-    sPm, &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rJackCombinedLoadAnnualizedCI)))
-
-  else
-
-  write(sSubTitle,FMT="('Load: ',3a,5x,'RMSE: ',a," &
-    //"5x,'Annual Load: ',3a)") &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoad))), &
-    sPm, &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadCI))), &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedRMSE))), &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadAnnualized))), &
-    sPm, &
-    TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadAnnualizedCI)))
-
-  endif
-
-  sUnits = CONC_UNITS(pConfig%iConcUnitsCode)%sUnitsSpelledOut
-
-  sAxisLabel = TRIM(sConstituentAllCaps)//', IN '//TRIM(sUnits)
-
-  write(sOutputFilePrefix,FMT="(a,'_',a,'_',i4.4,i2.2,i2.2,'-'," &
-      //"i4.4,i2.2,i2.2)") &
-    TRIM(sSite),TRIM(sConstituent),iBYear,iBMonth,iBDay, &
-    iEYear,iEMonth,iEDay
-
-  call CleanUp(sOutputFilePrefix)
-
-  do i=1,LEN_TRIM(pConfig%sBaseDirName)
-    if(pConfig%sBaseDirName(i:i)=="\") then
-      s_WD(i:i) = "/"
-    else
-      s_WD(i:i) = pConfig%sBaseDirName(i:i)
-    end if
-  end do
-
-  do i=1,LEN_TRIM(pConfig%sResultsDirName)
-    if(pConfig%sResultsDirName(i:i)=="\") then
-      s_RD(i:i) = "/"
-    else
-      s_RD(i:i) = pConfig%sResultsDirName(i:i)
-    end if
-  end do
-
-  sR_ScriptName = TRIM(pConfig%sBaseDirName)//TRIM(pConfig%sResultsDirName) &
-        //TRIM(sOutputFilePrefix)//".R"
-
-  sPDF_PNG_Prefix = TRIM(s_WD)//TRIM(s_RD) &
-      //TRIM(sOutputFilePrefix)
-
-  open (LU_R_SCRIPT, &
-     file=sR_ScriptName, &
-     STATUS='REPLACE',FORM='FORMATTED',iostat=iStat)
-
-  if(iStat /= 0) then
-    print *, "Could not open R Script output file: ", &
-      TRIM(sOutputFilePrefix)//".R"
-    stop
-  end if
-
-
-  write(LU_R_SCRIPT,FMT=*) &
-    'flow<-data.frame(cbind(Date=1,Q=rep(0,',size(pFlow%rFlow),')))'
-  write(LU_R_SCRIPT,FMT=*) &
-    'colnames(flow)<-c("Date","Q")'
-
-  write(LU_R_SCRIPT,FMT=*) &
-    'conc<-data.frame(cbind(Date=1,Q=rep(0,',size(pConc%rConc),')))'
-  write(LU_R_SCRIPT,FMT=*) &
-    'colnames(conc)<-c("Date","Conc")'
-
-  write(LU_R_SCRIPT,*) &
-    'num_strata<-'//TRIM(int2char(pBestConfig%iMaxNumStrata))
-
-  write(LU_R_SCRIPT,FMT=*) &
-    'bound<-data.frame(Date=rep(0,',pBestConfig%iMaxNumStrata-1,'))'
-  write(LU_R_SCRIPT,FMT=*) &
-    'strata<-data.frame(Date=rep(0,',pBestConfig%iMaxNumStrata,'))'
-
-  do i=1,size(pFlow%rFlow)
-    write(LU_R_SCRIPT,&
-       FMT="('flow$Date[',a,']<-',a1,i4.4,'-',i2.2,'-',i2.2,a1," &
-         //"'; flow$Q[',a,']<-',a))") &
-      TRIM(int2char(i)),sQt,pFlow(i)%iYear,pFlow(i)%iMonth,pFlow(i)%iDay, &
-      sQt,TRIM(int2char(i)),TRIM(real2char(pFlow(i)%rFlow &
-            / FLOW_UNITS(pConfig%iFlowUnitsCode)%rConversionFactor))
-  end do
-
-  do i=1,size(pConc%rConc)
-    write(LU_R_SCRIPT,&
-       FMT="('conc$Date[',a,']<-',a1,i4.4,'-',i2.2,'-',i2.2,a1," &
-         //"'; conc$Conc[',a,']<-',a))") &
-      TRIM(int2char(i)),sQt,pConc(i)%iYear,pConc(i)%iMonth,pConc(i)%iDay, &
-      sQt,TRIM(int2char(i)),TRIM(real2char(pConc(i)%rConc &
-            / CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor))
-  end do
-
-  do i=1,pBestConfig%iMaxNumStrata - 1
-
-    call gregorian_date(pBestConfig%iStrataBound(i), iYear, iMonth, iDay)
-
-    write(LU_R_SCRIPT,&
-       FMT="('bound$Date[',a,']<-',a1,i4.4,'-',i2.2,'-',i2.2,a1)") &
-      TRIM(int2char(i)),sQt,iYear,iMonth,iDay,sQt
-
-  end do
-
-
-  do i=1,2
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'setwd("'//TRIM(s_WD)//'")'
-!  write(LU_R_SCRIPT,FMT=*) &
-!    'y<-read.table("conc.txt",header=TRUE)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'dummy<-runif(length(flow$Date))*max(conc$Conc)*1.1'
-!  write(LU_R_SCRIPT,FMT=*) &
-!    'conc$Date<-as.Date(paste(conc$Year,conc$Month,conc$Day,sep="-"))'
-    write(LU_R_SCRIPT,FMT=*) &
-      'flow$Date<-as.Date(flow$Date)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'conc$Date<-as.Date(conc$Date)'
-
-    if(pBestConfig%iMaxNumStrata>1) then
-      write(LU_R_SCRIPT,FMT=*) &
-        'bound$Date<-as.Date(bound$Date)'
-    end if
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'first<-flow$Date[1]'
-    write(LU_R_SCRIPT,FMT=*) &
-      'last<-flow$Date[length(flow$Date)]'
-    write(LU_R_SCRIPT,FMT=*) &
-      'datetext<-paste(format(first,format="%B %Y"),"through",format(last,format="%B %Y"))'
-
-    write(LU_R_SCRIPT,*) &
-      "strata$Date[1]<-mean(flow$Date[flow$Date<=bound$Date[1]])"
-
-    write(LU_R_SCRIPT,*) &
-      "strata$Date[num_strata]<-mean(flow$Date[flow$Date>bound$Date[num_strata-1]])"
-
-    do j=2,pBestConfig%iMaxNumStrata-1
-      write(LU_R_SCRIPT, &
-        FMT="('strata$Date[',a,']<-mean(flow$Date[flow$Date>bound$Date['," &
-        //"a,'] & flow$Date<=bound$Date[',a,']])')") &
-        TRIM(int2char(j)),TRIM(int2char(j-1)),TRIM(int2char(j))
-    end do
-
-    if(i==1) then
-      write(LU_R_SCRIPT,FMT=*) &
-      'png(filename = '//sQt//TRIM(sPDF_PNG_Prefix)//'.png' &
-      //sQt//', width = 1024, height = 768, units = '//sQt//'px'//sQt &
-      //', pointsize = 12, bg = "white", res = NA, restoreConsole = TRUE)'
-    else
-      write(LU_R_SCRIPT,FMT=*) &
-      'pdf(file = '//sQt//TRIM(sPDF_PNG_Prefix)//'.pdf' &
-      //sQt//', width = 11, height = 8.5)'
-    end if
-
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'nf <- layout(matrix(c(1,2),2,1,byrow=F), width=2,height=c(5,1))'
-    write(LU_R_SCRIPT,FMT=*) &
-      '# set margins: bottom, left side, top, right side'
-    write(LU_R_SCRIPT,FMT=*) &
-      'par(mar=c(3,6,5,6))'
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'par(bg="white")'
-    write(LU_R_SCRIPT,FMT=*) &
-      'par(tcl=0.35)'
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'y<-flow$Q'
-    write(LU_R_SCRIPT,FMT=*) &
-      'y[y>median(y)]<-y[y>median(y)]*1.1'
-    write(LU_R_SCRIPT,FMT=*) &
-      'plot(x=flow$Date,y=y, type="n", axes=FALSE, ann=FALSE)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'mtext("DISCHARGE, IN CFS",side=2,line=4,font=2,cex=1.1)'
-!    write(LU_R_SCRIPT,FMT=*) &
-!      'usr <- par("usr")'
-!    write(LU_R_SCRIPT,FMT=*) &
-!      'rect(usr[1], usr[3], usr[2], usr[4], col="cornsilk", border="black")'
-    write(LU_R_SCRIPT,FMT=*) &
-      'lines(x=flow$Date,y=flow$Q, col="steelblue")'
-    write(LU_R_SCRIPT,FMT=*) &
-      'points(x=flow$Date,y=flow$Q, pch=19, col="steelblue", cex=0.4)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'axis(2, col.axis="blue", las=1)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'axis.Date(1,flow$Date,col.axis='//sQt//'blue'//sQt//',format=' &
-      //sQt//sPct//'b-'//sPct//'y'//sQt//',at=seq(as.Date(flow$Date[1]),' &
-      //'as.Date(flow$Date[length(flow$Date)]),'//sQt//'months'//sQt//'))'
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'axis.Date(1,flow$Date,side=3,' &
-      //'labels=F,at=seq(as.Date(flow$Date[1]),' &
-      //'as.Date(flow$Date[length(flow$Date)]),'//sQt//'months'//sQt//'))'
-
-
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'title.txt<-paste('//sQt//TRIM(sSite)//': '//TRIM(sConstituent) &
-      //' ('//sQt//',datetext,'//sQt//')'//sQt//')'
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'title(main=title.txt, font.main=2, col.main='//sQt//'red'//sQt//',line=3)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'mtext(expression('//sQt//TRIM(sSubTitle)//sQt//'),side=3,line=1,font=2,cex=0.9)'
-!    write(LU_R_SCRIPT,FMT=*) &
-!      'title(xlab=datetext, col.lab="red")'
-    write(LU_R_SCRIPT,FMT=*) &
-      'par(new=TRUE)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'plot(x=flow$Date,y=dummy, type="n", axes=FALSE, ann=FALSE)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'axis(4, col.axis="blue", las=1)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'mtext('//sQt//TRIM(sAxisLabel)//sQt//',side=4,line=4,font=2,cex=1.1)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'abline(v=conc$Date,col="grey80")'
-    write(LU_R_SCRIPT,FMT=*) &
-      'points(x=conc$Date,y=conc$Conc, pch=22, bg="red", cex=1.2)'
-
-    write(LU_R_SCRIPT,FMT=*) &
-      "if(mean(conc$Conc)<0.1) {"
-    write(LU_R_SCRIPT,FMT= &
-      "('text(x=conc$Date+2,y=conc$Conc + ',a,', sprintf('," &
-      //"a,a,'.3f',a,',conc$Conc),cex=0.6,srt=90)')") &
-        TRIM(real2char(rOffset)),sQt,sPct,sQt
-      write(LU_R_SCRIPT,FMT=*) &
-      "} else {"
-    write(LU_R_SCRIPT,FMT= &
-      "('text(x=conc$Date+2,y=conc$Conc + ',a,', sprintf('," &
-      //"a,a,'.2f',a,',conc$Conc),cex=0.6,srt=90)')") &
-        TRIM(real2char(rOffset)),sQt,sPct,sQt
-    write(LU_R_SCRIPT,FMT=*) &
-      "}"
-
-!    write(LU_R_SCRIPT,FMT=*) &
-!      'rect(as.Date("2000-05-01"),2,y$Date[18],6)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'abline(v=bound$Date+1.5,col="red",lty=3,lwd=2)'
-
-    do j=1,pBestConfig%iMaxNumStrata
-
-      write(LU_R_SCRIPT,FMT= *) &
-        'text(x=strata$Date['//TRIM(int2char(j))//'],y=0.97*max(dummy),' &
-        //sQt//TRIM(ADJUSTL(sf_L_units(pConfig,pBestConfig%rStratumCorrectedLoad(j)))) &
-        //sQt//',srt=90,cex=0.7,col='//sQt//'red'//sQt//')'
-
-    end do
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'box()'
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'leg.txt<-c('//sQT//'DISCHARGE' &
-        //sQt//','//sQt//'CONCENTRATION'//sQt//','//sQt &
-        //'STRATA BOUNDARY'//sQt//')'
-    write(LU_R_SCRIPT,FMT=*) &
-      'leg.col<-c('//sQT//'steelblue'//sQt &
-        //','//sQt//'black'//sQt//','//sQt//'red'//sQt//')'
-    write(LU_R_SCRIPT,FMT=*) &
-      'leg.cex<-0.8'
-    write(LU_R_SCRIPT,FMT=*) &
-      'leg.lty<-c(1,NA,3)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'leg.lwd<-c(1,NA,2)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'leg.pch<-c(19,22,NA)'
-    write(LU_R_SCRIPT,FMT=*) &
-      'pt.bg<-c('//sQT//'black'//sQT//',' &
-        //sQT//'red'//sQT//','//sQT//'black'//sQT//')'
-    write(LU_R_SCRIPT,FMT=*) &
-      'par(mar=c(3,0,0,0))'
-    write(LU_R_SCRIPT,FMT=*) &
-      'plot(1:10,1:10,type='//sQT//'n'//sQT//',axes=F,ann=F)'
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'mtext('//sQt//'Flow filename: ' &
-      //TRIM(pConfig%sFlowFileName) &
-      //'      Concentration filename: ' &
-      //TRIM(pConfig%sConcFileName) &
-      //sQt//',side=1,line=1,font=1,cex=0.7)'
-
-    write(LU_R_SCRIPT,FMT=*) &
-      'legend('//sQT//'center'//sQT//',legend=leg.txt,lty=leg.lty,' &
-      //'col=leg.col,pch=leg.pch,lwd=leg.lwd,' &
-      //'cex=leg.cex,pt.bg=pt.bg,inset=c(0.02,0.02),'&
-      //'title='//sQT//'EXPLANATION'//sQT//')'
-
-
-    write(LU_R_SCRIPT,FMT=*) 'dev.off()'
-
-  end do
-
-  close(LU_R_SCRIPT)
-
-  call SYSTEM("Rcmd BATCH "//TRIM(sR_ScriptName))
-
-
-  return
-
-end subroutine write_R_script
 
 end module beale

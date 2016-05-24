@@ -78,10 +78,10 @@ function ga_beale(iNumBounds,x)  result(rValue)
 
     write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") &
       iB_Month,iB_Day,iB_Year
-    pB%sStartDate = TRIM(sBuf)
+    pB%sStartDate = trim(sBuf)
     write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") &
       iE_Month,iE_Day,iE_Year
-    pB%sEndDate = TRIM(sBuf)
+    pB%sEndDate = trim(sBuf)
 
     if(lValid) then
 
