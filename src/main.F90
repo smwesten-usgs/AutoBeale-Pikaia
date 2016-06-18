@@ -5,16 +5,20 @@ program main
   use ga_driver
   use beale
   use output
+  use version_control, only      : GIT_COMMIT_HASH_STRING, GIT_BRANCH_STRING,   &
+                                   BEALE_VERSION, COMPILE_DATE, COMPILE_TIME
 
   implicit none
 
-  integer (kind=T_INT) :: iStat, i,j
-  integer (kind=T_INT) :: iCommandCount, iValue, iNumFiles, iNumIterations
-  character (len=256) :: sRecord, sItem, sBuf, sOutputFilePrefix
-  character (len=256) :: sSite, sConstituent
-  character (len=256) :: sConcFile, sFlowFile, sResultsDir
-  character (len=256) :: sFileList = ""
-  character (len=1) :: sTab = CHAR(9)
+  integer (kind=T_INT)           :: iStat, i,j
+  integer (kind=T_INT)           :: iCommandCount, iValue, iNumFiles, iNumIterations
+  character (len=256)            :: sRecord, sItem, sBuf, sOutputFilePrefix
+  character (len=256)            :: sSite, sConstituent
+  character (len=256)            :: sConcFile, sFlowFile, sResultsDir
+  character (len=256)            :: sFileList = ""
+  character (len=:), allocatable :: buf_str
+  integer (kind=T_INT)           :: str_len
+  character (len=1), parameter   :: sTab = CHAR(9)
 
   integer (kind=T_INT) :: iBMonth,iBDay,iBYear
   integer (kind=T_INT) :: iEMonth,iEDay,iEYear
@@ -33,10 +37,21 @@ program main
 
   iCommandCount = COMMAND_ARGUMENT_COUNT()
 
-!  if(iCommandCount < 4) then
-!    call Assert(lFALSE, &
-!    "Usage: beale -flow[_old] 'flow_filename' -conc[_old] 'concentration filename'")
-!  end if
+  if(iCommandCount < 4) then
+    buf_str = "AutoBeale-Pikaia version "//trim(BEALE_VERSION)
+    str_len = len_trim( buf_str )
+    write(*, "(/,a)") repeat("-", str_len + 4)
+    write(*, "('| ',a,' |')") buf_str
+    write(*, "(a,/)") repeat("-", str_len + 4)
+    write(*,"(a,t35,a)") "Git branch and commit hash:",trim( adjustl(GIT_BRANCH_STRING) )            &
+                  //", "//trim( adjustl(GIT_COMMIT_HASH_STRING) )
+    write(*,"(a,t35,a)") "Compile date, time: ", trim(COMPILE_DATE)//" "//trim(COMPILE_TIME)
+#ifdef __GFORTRAN__
+      write(*,"(a,t35,a)") "Compiler name:", "gfortran version "//trim(__VERSION__)
+#endif
+    write(*,"(/,a,/)") "Usage: autobeale_pikaia -flow[_old] 'flow_filename' -conc[_old] 'concentration filename'"
+    stop
+  end if
 
   do i=1,iCommandCount,2
     call GET_COMMAND_ARGUMENT(i,sBuf)
