@@ -87,9 +87,9 @@ IMPLICIT NONE
 
 
 INTEGER, INTENT(IN)                      :: n
-REAL (kind=T_REAL), INTENT(IN OUT)                     :: ctrl(12)
-REAL (kind=T_REAL), INTENT(OUT)                        :: x(n)
-REAL (kind=T_REAL), INTENT(OUT)                        :: f
+REAL (kind=T_REAL), INTENT(IN OUT)       :: ctrl(12)
+REAL (kind=T_REAL), INTENT(OUT)          :: x(n)
+REAL (kind=T_REAL), INTENT(OUT)          :: f
 INTEGER, INTENT(OUT)                     :: STATUS
 
 integer (kind=T_INT) :: iBeginTime, iCurrTime

@@ -259,25 +259,43 @@ subroutine read_data(pConfig, pFlow, pConc)
 
       call Chomp( sRecord, pConc(i)%sTribName )
 
-      pConc(i)%sConstituentName = "???"
+      pConc(i)%sConstituentName = ""
 
       call Chomp( sRecord, pConc(i)%sDate )
-      read(pConc(i)%sDate(1:4),FMT=*) pConc(i)%iYear
-      read(pConc(i)%sDate(5:6),FMT=*) pConc(i)%iMonth
-      read(pConc(i)%sDate(7:8),FMT=*) pConc(i)%iDay
 
-      if(len_trim(pConc(i)%sDate(9:10))>0) &
-        read(pConc(i)%sDate(9:10),FMT=*) pConc(i)%iHour
+      ! attempt to deal with 2-digit year values
+      if ( len_trim( pConc(i)%sDate ) == 10 ) then
 
+        read(pConc(i)%sDate(1:2),FMT=*) pConc(i)%iYear
+        read(pConc(i)%sDate(3:4),FMT=*) pConc(i)%iMonth
+        read(pConc(i)%sDate(5:6),FMT=*) pConc(i)%iDay
 
-      if(len_trim(pConc(i)%sDate(11:12))>0) &
-        read(pConc(i)%sDate(11:12),FMT=*) pConc(i)%iMinute
+        if(len_trim(pConc(i)%sDate(7:8))>0) &
+          read(pConc(i)%sDate(7:8),FMT=*) pConc(i)%iHour
 
-      write(pConc(i)%sDate,FMT="(i4,i2.2,i2.2)") pConc(i)%iYear, &
-        pConc(i)%iMonth,pConc(i)%iDay
+        if(len_trim(pConc(i)%sDate(9:10))>0) &
+          read(pConc(i)%sDate(9:10),FMT=*) pConc(i)%iMinute
 
-   	pConc(i)%iJulianDay = julian_day ( pConc(i)%iYear, &
-   	pConc(i)%iMonth, pConc(i)%iDay )
+        ! assumption is that this is a pre-Y2K dataset
+        pConc(i)%iYear = pConc(i)%iYear + 1900
+
+      else
+
+        read(pConc(i)%sDate(1:4),FMT=*) pConc(i)%iYear
+        read(pConc(i)%sDate(5:6),FMT=*) pConc(i)%iMonth
+        read(pConc(i)%sDate(7:8),FMT=*) pConc(i)%iDay
+
+        if(len_trim(pConc(i)%sDate(9:10))>0) &
+          read(pConc(i)%sDate(9:10),FMT=*) pConc(i)%iHour
+
+        if(len_trim(pConc(i)%sDate(11:12))>0) &
+          read(pConc(i)%sDate(11:12),FMT=*) pConc(i)%iMinute
+
+      endif
+
+      write(pConc(i)%sDate,FMT="(i4,i2.2,i2.2)") pConc(i)%iYear, pConc(i)%iMonth,pConc(i)%iDay
+
+    	pConc(i)%iJulianDay = julian_day ( pConc(i)%iYear, pConc(i)%iMonth, pConc(i)%iDay )
 
     	sDateStr = pConc(i)%sDate
 
@@ -930,7 +948,7 @@ subroutine assemble_strata(pConfig,pFlow,pConc,pB,iStrataNum,lValid)
 
   if(pB%iEndDate <= pB%iStartDate) then
     lValid = lFALSE
-  elseif(pB%iNumSamples < 2) then
+  elseif(pB%iNumSamples <= 2) then
     lValid = lFALSE
   end if
 

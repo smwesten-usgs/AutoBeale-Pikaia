@@ -16,7 +16,7 @@ implicit none
   integer, parameter :: iPikaiaMaxNumAttempts = 3
   integer, parameter :: iPikaiaMaxIterations_w_NoChange = 7
   integer, parameter :: iPikaiaOutputOption = 0
-  integer, parameter :: iPikaiaNumSigFigs = 5
+  integer, parameter :: iPikaiaNumSigFigs = 6
 
   type (T_FLOW), dimension(:), pointer, save :: pFlow
   type (T_CONC), dimension(:), pointer, save :: pConc

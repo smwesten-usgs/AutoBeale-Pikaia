@@ -228,7 +228,7 @@ program main
   end if
 
   open (UNIT=LU_STATS_OUT,iostat=iStat, &
-    file=trim(sResultsDir)//"\beale_stats.txt",status='REPLACE')
+    file=trim(sResultsDir)//"/beale_stats.txt",status='REPLACE')
 
   call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
     "Could not open output stats file")
@@ -247,12 +247,12 @@ program main
   end if
 
   open (UNIT=LU_LOADS_OUT,iostat=iStat, &
-    file=trim(sResultsDir)//"\flow_conc_load_daily.txt",access='APPEND')
+    file=trim(sResultsDir)//"/flow_conc_load_daily.txt",access='APPEND')
 !
   call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
     "Could not open flow, conc, and load result file")
 
-  open (LU_JACKKNIFE_OUT,file=trim(sResultsDir)//"\"//"jackknife_results.txt", &
+  open (LU_JACKKNIFE_OUT,file=trim(sResultsDir)//"/"//"jackknife_results.txt", &
     ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
 
   call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
@@ -408,7 +408,7 @@ program main
     iEYear,iEMonth,iEDay
 
   open (UNIT=LU_LONG_RPT,&
-    FILE=trim(sResultsDir)//"\"//trim(pConfig%sExtendedOutputFileName), &
+    FILE=trim(sResultsDir)//"/"//trim(pConfig%sExtendedOutputFileName), &
     STATUS='REPLACE', FORM='FORMATTED',iostat=iStat)
 
   if(iStat /= 0) then

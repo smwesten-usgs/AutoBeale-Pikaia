@@ -144,8 +144,7 @@ contains
 
     do i=1,size(pFlow%rFlow)
       write(LU_R_SCRIPT,&
-         FMT="('flow$Date[',a,']<-',a1,i4.4,'-',i2.2,'-',i2.2,a1," &
-           //"'; flow$Q[',a,']<-',a))") &
+         FMT="('flow$Date[', a, '] <- ', a1, i4.4, '-', i2.2, '-', i2.2, a1, '; flow$Q[', a, '] <-', a)") &
         trim(int2char(i)),sQt,pFlow(i)%iYear,pFlow(i)%iMonth,pFlow(i)%iDay, &
         sQt,trim(int2char(i)),trim(real2char(pFlow(i)%rFlow &
               / FLOW_UNITS(pConfig%iFlowUnitsCode)%rConversionFactor))
@@ -153,8 +152,7 @@ contains
 
     do i=1,size(pConc%rConc)
       write(LU_R_SCRIPT,&
-         FMT="('conc$Date[',a,']<-',a1,i4.4,'-',i2.2,'-',i2.2,a1," &
-           //"'; conc$Conc[',a,']<-',a))") &
+         FMT="('conc$Date[', a, '] <- ', a1, i4.4, '-', i2.2, '-', i2.2, a1 , '; conc$Conc[', a, '] <- ', a)") &
         trim(int2char(i)),sQt,pConc(i)%iYear,pConc(i)%iMonth,pConc(i)%iDay, &
         sQt,trim(int2char(i)),trim(real2char(pConc(i)%rConc &
               / CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor))
@@ -173,8 +171,7 @@ contains
 
     do i=1,2
 
-      write(LU_R_SCRIPT,FMT=*) &
-        'setwd("'//trim(s_WD)//'")'
+      if ( len_trim( s_WD ) > 0 )   write(LU_R_SCRIPT,FMT=*) 'setwd("'//trim(s_WD)//'")'
   !  write(LU_R_SCRIPT,FMT=*) &
   !    'y<-read.table("conc.txt",header=TRUE)'
       write(LU_R_SCRIPT,FMT=*) &
@@ -363,7 +360,7 @@ contains
 
     close(LU_R_SCRIPT)
 
-    call SYSTEM("Rcmd BATCH "//trim(sR_ScriptName))
+    call SYSTEM("Rscript "//trim(sR_ScriptName))
 
 
     return

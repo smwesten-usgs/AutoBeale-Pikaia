@@ -192,11 +192,11 @@ module types
 
 
   type,public :: T_MONTH
-      !! Container for calendar lookup information
-      character (len=3) :: sName          ! Abbreviated name
+    !! Container for calendar lookup information
+    character (len=3) :: sName          ! Abbreviated name
 	  character (len=9) :: sFullName      ! Full month name
-      integer (kind=T_INT) :: iStart      ! Starting (Julian) date
-      integer (kind=T_INT) :: iEnd        ! Ending (Julian) date
+    integer (kind=T_INT) :: iStart      ! Starting (Julian) date
+    integer (kind=T_INT) :: iEnd        ! Ending (Julian) date
 	  integer (kind=T_INT) :: iMonth      ! Month number (1-12)
   end type T_MONTH
 
