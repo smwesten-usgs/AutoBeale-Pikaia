@@ -141,10 +141,10 @@ program main
 
   write(sBuf,FMT="(i3)") iPikaiaMaxParameters
 
-  call Assert(LOGICAL(pConfig%iMaxEvalStrata>0 .and. &
+  call Assert(LOGICAL(pConfig%iMaxEvalStrata>=0 .and. &
     pConfig%iMaxEvalStrata < iPikaiaMaxParameters+1, &
     kind=T_LOGICAL), &
-    "Number of possible strata is limited to the range 0 to " &
+    "Number of possible strata is limited to the range 1 to " &
     //trim(sBuf))
 
   iNumFiles = 0
@@ -227,8 +227,11 @@ program main
     stop
   end if
 
-  open (UNIT=LU_STATS_OUT,iostat=iStat, &
-    file=trim(sResultsDir)//"/beale_stats.txt",status='REPLACE')
+  if ( len_trim( sResultsDir)==0 ) then
+    open (UNIT=LU_STATS_OUT,iostat=iStat, file="beale_stats.txt",status='REPLACE')
+  else
+    open (UNIT=LU_STATS_OUT,iostat=iStat, file=trim(sResultsDir)//"/beale_stats.txt",status='REPLACE')
+  endif
 
   call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
     "Could not open output stats file")
@@ -237,8 +240,12 @@ program main
 ! Open files for output
 !----------------------------------------------------------------------
 
-  open (LU_SHORT_RPT,file=trim(sResultsDir)//"\"//trim(pConfig%sShortOutputFileName), &
-    ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
+  if ( len_trim( sResultsDir )==0 ) then
+    open (LU_SHORT_RPT,file=trim(pConfig%sShortOutputFileName), ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
+  else
+    open (LU_SHORT_RPT,file=trim(sResultsDir)//"\"//trim(pConfig%sShortOutputFileName), &
+      ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
+  endif
 
   if(iStat /= 0) then
     print *, "Could not open summary output file: ", &
@@ -246,14 +253,22 @@ program main
     stop
   end if
 
-  open (UNIT=LU_LOADS_OUT,iostat=iStat, &
-    file=trim(sResultsDir)//"/flow_conc_load_daily.txt",access='APPEND')
-!
+  if ( len_trim( sResultsDir )==0 ) then
+    open (UNIT=LU_LOADS_OUT,iostat=iStat, file="flow_conc_load_daily.txt",access='APPEND')
+  else
+    open (UNIT=LU_LOADS_OUT,iostat=iStat, &
+      file=trim(sResultsDir)//"\flow_conc_load_daily.txt",access='APPEND')
+  endif
+
   call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
     "Could not open flow, conc, and load result file")
 
-  open (LU_JACKKNIFE_OUT,file=trim(sResultsDir)//"/"//"jackknife_results.txt", &
-    ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
+  if ( len_trim( sResultsDir )==0 ) then
+    open (LU_JACKKNIFE_OUT,file="jackknife_results.txt", ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
+  else
+    open (LU_JACKKNIFE_OUT,file=trim(sResultsDir)//"\"//"jackknife_results.txt", &
+      ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
+  endif
 
   call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
     "Could not open jackknife output file")
@@ -263,7 +278,7 @@ program main
 
       write(LU_LOADS_OUT,FMT="(500a)") &
         'TribName',',', &
-        'Date',',', 'Fraction.of.year',',',&
+        'Date',',', 'Fraction_of_year',',',&
         'Flow',',','Conc',',','Load'
 
   end if
@@ -271,7 +286,7 @@ program main
   if(FTELL(LU_SHORT_RPT)==0) then
 
       write(LU_SHORT_RPT,FMT="(500a)") &
-        'FlowFileName',sTab, 'ConcFileName',sTab,&
+        'AutoBealeRunDate', sTab, 'FlowFileName',sTab, 'ConcFileName',sTab,&
         'Constituent', sTab, &
         'StartDate', sTab, 'EndDate', sTab, &
         'MaxNumStrata',sTab,'CombinedLoad',sTab, &
@@ -407,9 +422,14 @@ program main
     trim(sSite),trim(sConstituent),iBYear,iBMonth,iBDay, &
     iEYear,iEMonth,iEDay
 
-  open (UNIT=LU_LONG_RPT,&
-    FILE=trim(sResultsDir)//"/"//trim(pConfig%sExtendedOutputFileName), &
-    STATUS='REPLACE', FORM='FORMATTED',iostat=iStat)
+  if( len_trim( sResultsDir ) == 0 ) then
+    open (UNIT=LU_LONG_RPT, FILE=trim(pConfig%sExtendedOutputFileName), &
+      STATUS='REPLACE', FORM='FORMATTED',iostat=iStat)
+  else
+    open (UNIT=LU_LONG_RPT,&
+      FILE=trim(sResultsDir)//"\"//trim(pConfig%sExtendedOutputFileName), &
+      STATUS='REPLACE', FORM='FORMATTED',iostat=iStat)
+  endif
 
   if(iStat /= 0) then
     print *, "Could not open extended output file:",trim(pConfig%sExtendedOutputFileName)
@@ -507,7 +527,7 @@ program main
     pConfig%lJackknife=lTRUE
     pBestConfig%lJackknife=lTRUE
 
-  else
+  else  ! we are not computing jackknife estimates; simple single pass through the Beale calc
 
     pConc%lInclude = lTRUE
 
@@ -521,8 +541,6 @@ program main
 
   call print_short_report(pBestConfig,pConc)
   call write_R_script(pConfig,pBestConfig,pFlow,pConc)
-
-
 
   call reset_config(pConfig)
   call reset_config(pBestConfig)

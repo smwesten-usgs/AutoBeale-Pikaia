@@ -243,6 +243,20 @@ module types
 
   contains
 
+function make_timestamp()   result( sTimestamp )
+
+  character(len=32)    :: sTimestamp
+
+  ! [ LOCALS ]
+  character (len=16) :: sDateText
+  character (len=16) :: sTimeText
+
+  call DATE_AND_TIME(sDateText, sTimeText)
+
+  sTimestamp = trim(sDateText)//" "//trim(sTimeText)
+
+end function
+
 !--------------------------------------------------------------------------
 !!****s* types/Chomp_tab
 ! NAME

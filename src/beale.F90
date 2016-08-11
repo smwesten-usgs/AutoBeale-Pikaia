@@ -1,46 +1,5 @@
 module beale
 
-!-----------------------------------------------------------------------
-!  File name:    DBeale.f
-!
-! ***************************************************************
-! *                                                             *
-! * R. Peter Richards                                           *
-! * Water Quality Lab                                           *
-! * Heidelberg College                                          *
-! * Tiffin, Ohio 44883                                          *
-! * 419 448-2198                                                *
-! *                                                             *
-! *                                                             *
-! *                                                             *
-! * Macintosh implementation of IJC Beale ratio estimator       *
-! * Program.                                                    *
-! *                                                             *
-! ***************************************************************
-!
-!  Purpose: A subroutine to calculate substance loadings using the stratified
-!           Beale ratio estimator
-!
-!  Compile with:    (makefile beale.make)
-!
-!
-!  Edit History:
-!
-!  ????      IJC Fortran program written             Kevin McGunagle         IJC
-!  Dec-1993  Converted to MacFortran II, code "modernized"                   RPR
-!            Code added in to allow time strata as well as flow              RPR
-!            Code modified to allow discontinuous time strata, more useful   RPR
-!            summary file.  Sort based on stratum number, assigned
-!            in READAT. Other procedures reorganized...
-!            Code added to calculate the user-chosen percentile of flow      RPR
-!            for each year, and use it as the stratification point.
-!  Nov 1994  Code added to use finite population correction, third order     RPR
-!            variance estimate, and frational d.f. in calculating c.i.
-!  Sept 1998 Conversion to non-graphics IBM version begun                    RPR
-!-----------------------------------------------------------------------
-
-!**************************************************************************
-
   use types
 
   implicit none
@@ -1187,8 +1146,8 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pB)
 
       write(LU_STD_OUT,FMT=*) ' ===> OLD AUTOBEALE OUTPUT <==='
 
-      write(LU_STD_OUT,FMT="(t2,'ndays:',i4,2x,'nf(j):',f6.0,2x,'r:',f6.0)") &
-        ndays, nf(j), r(j)
+      write(LU_STD_OUT,FMT="(t2,'strata:',i3,2x,'ndays:',i4,2x,'nf(j):',f6.0,2x,'r:',f6.0)") &
+        j, ndays, nf(j), r(j)
       write(LU_STD_OUT,FMT="(t2,'flowmu:',f12.3,2x,'avflow:',f12.3,2x,'avload:',f12.3)") &
         flowmu, avflow, avload
 
@@ -1255,7 +1214,7 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pB)
 
         rmse(j)=(avload*flowmu/avflow)**2*(f1+f2+f3)
 
-        write(*,FMT="(i4,': RMSE (orig):',G16.3)")j, rmse(j)
+        write(*,FMT="('RMSE (orig):',f16.3)") rmse(j)
         print *, '   (this is the daily MSE for a stratum)'
         print *, ' '
 
@@ -1305,7 +1264,7 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pB)
 !         cumfl,cumse,df, rn
 
 
-! calculate the 95% confidence interval half-width (i.e. the ±number)
+! calculate the 95% confidence interval half-width (i.e. the ï¿½number)
       if (df.ge.30) then
         tval=1.96_T_REAL+2.4_T_REAL/df
       else
@@ -1320,7 +1279,7 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pB)
         ci=tval*sqrt(rmse(1)*0.133225_T_REAL)
       end if
 
-      write(LU_STD_OUT,*) 'OLD AUTOBEALE: load  mse  df  ci'
+      write(LU_STD_OUT,fmt="(a)") 'OLD AUTOBEALE:     load         mse                df         ci'
 
       if (pConfig%iMaxNumStrata.gt.1) then
         write (LU_STD_OUT,11) 'OLD AUTOBEALE:',ce2*1000.,mse2*1.e+06, &
@@ -1330,7 +1289,7 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pB)
            rmse(1)*0.133225_T_REAL*1.e+06,r(1)-1.,ci*1000.
       end if
 
-11      format (a16,2f16.4,f10.3,f16.4)
+11      format (a,2f16.4,f10.3,f16.4)
 
 
 300   return
@@ -1422,12 +1381,12 @@ function rf_compute_CI(rDegreesFreedom, rMSE)  result(r_CI)
     2.2,2.18,2.16,2.14,2.13,2.12,2.11,2.10,2.09,2.09, &
     2.08,2.07,2.07,2.06,2.06,2.06,2.05,2.05,2.05,2.04/)
 
-! calculate the 95% confidence interval half-width (i.e. the ±number)
+! calculate the 95% confidence interval half-width (i.e. the ï¿½number)
 ! basically, we're using eq. 12.19, Efron and Tibshirani, p. 159
 ! to estimate a confidence interval based on the appropriate Student's t-value
 
   if (rDegreesFreedom >= 30.) then
-    rTval=1.96_T_REAL+2.4_T_REAL/rDegreesFreedom
+    rTval=1.96_T_REAL + 2.4_T_REAL / rDegreesFreedom
   else
     rTval1=t05(INT(dmax1(1.0_T_REAL,rDegreesFreedom)))
     rTval2=t05(INT(dmax1(1.0_T_REAL,rDegreesFreedom)+1))
@@ -1440,6 +1399,27 @@ function rf_compute_CI(rDegreesFreedom, rMSE)  result(r_CI)
   r_CI = rTval * sqrt(rMSE)
 
   return
+
+  ! ! calculate the 95% confidence interval half-width (i.e. the ï¿½number)
+  !       if (df.ge.30) then
+  !       tval=1.96d0+2.4d0/df
+  !       else
+  !       tval1=t05(idint(dmax1(1.0d0,df)))
+  !       tval2=t05(idint(dmax1(1.0d0,df)+1))
+  !       frac=df-idint(df)
+  !       tval=tval1+frac*(tval2-tval1)
+  !       end if
+  !       if (nstrata.gt.1) then
+  !       ci=tval*sqrt(mse2)
+  !       else
+  !       ci=tval*sqrt(rmse(1)*0.133225d0)
+  !       end if
+  !       if (bigio) write (2,15) ci,loadunits(1:2)
+  !
+  !       if (nstrata.gt.1) then
+  !       write (3,11) oldtribname,ce2,mse2,df,ci
+  !       else
+  !       write (3,11) oldtribname,flowes(1)*0.365d0,rmse(1)*0.133225d0,r(1)-1.,ci
 
 end function rf_compute_CI
 
@@ -1467,10 +1447,8 @@ subroutine print_strata_stats(pConfig, pB, pFlow, pConc, iStrataNumber, iLU)
     write(iLU,FMT=*) repeat("~",80)
     write(iLU,FMT="(' ===> BEGINNING OF SUMMARY for calculation with ',i3,' strata')") &
       pConfig%iMaxNumStrata
-    write(iLU,FMT="(1x,'FLOW DATA: ',/,a)") &
-       pConfig%sFlowFileName
-    write(iLU,FMT="(1x,'CONENTRATION DATA: ',/,a)") &
-       pConfig%sConcFileName
+    write(iLU,FMT="(1x,'FLOW DATA: ',a)") "'"//trim(pConfig%sFlowFileName)//"'"
+    write(iLU,FMT="(1x,'CONENTRATION DATA: ',a)") "'"//trim(pConfig%sConcFileName)//"'"
     write(iLU,FMT=*) repeat("~",80)
   end if
 
@@ -1495,7 +1473,6 @@ subroutine print_strata_stats(pConfig, pB, pFlow, pConc, iStrataNumber, iLU)
   write(iLU,FMT="(t7,'RATIO stratum FLOW to sample FLOW: ',t48,f12.2)") &
      pB%rMeanFlow / pB%rMeanSampleFlow
 
-
   write(iLU, FMT=*) " "
 
   write(iLU,FMT="(t7,'number of samples: ',t30,i5)") &
@@ -1505,11 +1482,10 @@ subroutine print_strata_stats(pConfig, pB, pFlow, pConc, iStrataNumber, iLU)
 
   if(iLU /= LU_STD_OUT) then
 
-    write(iLU,FMT="(t4,a10,3(a20,2x))") &
-      'Date','Flow','Concentration','Load'
-
-    write(iLU,FMT="(t14,4(a20,2x))") &
-      '-------------','-------------','-------------'
+    write(iLU,FMT= &
+      "('Date           Flow              Concentration       Load')")
+    write(iLU,FMT= &
+      "('---------    -----------------  -----------------  -----------------')")
 
     do i=1,size(pConc%rConc)
 
@@ -1518,7 +1494,7 @@ subroutine print_strata_stats(pConfig, pB, pFlow, pConc, iStrataNumber, iLU)
 
         call gregorian_date(pConc(i)%iJulianDay, iYear, iMonth, iDay)
 
-        write(iLU,FMT="(t4,i2.2,'/',i2.2,'/',i4.4,4(a20,2x))") &
+        write(iLU,FMT="(t4,i2.2,'/',i2.2,'/',i4.4,t16,a,t38,a,t60,a)") &
           iMonth,iDay,iYear, &
                trim(sf_Q_units(pConfig,pConc(i)%rFlow)), &
                trim(sf_C_units(pConfig,pConc(i)%rConc)), &
@@ -1744,31 +1720,35 @@ subroutine print_short_report(pConfig, pConc)
                                         ! program options, flags, and other settings
   type (T_CONC), dimension(:), pointer :: pConc
 
-  character (len=1) :: sTab = CHAR(9)
+  character (len=1)   :: sTab = CHAR(9)
+  character (len=32)  :: sTimeStamp
 
 !  if(pConfig%lJackknife) then
 
+    sTimeStamp = make_timestamp()
+
     write(LU_SHORT_RPT, &
-      FMT="(10a,i4,a,f18.2,a,a,a,5(f18.2,a),ES16.4,a,3(f18.2,a),i10)") &
-        trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,&
-        trim(pConc(1)%sConstituentName), sTab, &
-        trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab, &  !10
-        pConfig%iMaxNumStrata,sTab,pConfig%rCombinedLoad &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor,sTab, &
-        trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab, &
-        pConfig%rCombinedLoadCI &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab, &
-        pConfig%rCombinedLoadAnnualized &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab, &                         ! 3(f18.2,a)
-        pConfig%rCombinedLoadAnnualizedCI &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab, &
-        pConfig%rJackCombinedLoadAnnualized &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab, &                     ! 3(f18.2,a)
-        pConfig%rJackCombinedLoadAnnualizedCI &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab, &
-        pConfig%rTotalFlowAnnualized, sTab, &
-        pConfig%rCombinedMSE, sTab,pConfig%rCombinedRMSE,&
-        sTab,pConfig%rCombinedEffectiveDegreesFreedom, sTab, &
+      FMT="(12a,i5,a,f18.2,a,a,a,5(f18.2,a),ES16.4,a,3(f18.2,a),i10)")  &
+         trim(sTimeStamp), sTab,                                              &
+        trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,    &
+        trim(pConc(1)%sConstituentName), sTab,                                &
+        trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab,         &
+        pConfig%iMaxNumStrata,sTab,pConfig%rCombinedLoad                      &
+          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor,sTab,        &
+        trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab,                 &
+        pConfig%rCombinedLoadCI                                               &
+          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
+        pConfig%rCombinedLoadAnnualized                                       &
+          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
+        pConfig%rCombinedLoadAnnualizedCI                                     &
+          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
+        pConfig%rJackCombinedLoadAnnualized                                   &
+          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
+        pConfig%rJackCombinedLoadAnnualizedCI                                 &
+          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
+        pConfig%rTotalFlowAnnualized, sTab,                                   &
+        pConfig%rCombinedMSE, sTab,pConfig%rCombinedRMSE,                     &
+        sTab,pConfig%rCombinedEffectiveDegreesFreedom, sTab,                  &
         pConfig%iFuncCallNum
 
 !  else
@@ -1949,15 +1929,13 @@ function sf_C_units(pConfig,rValue)  result(sC_w_units)
 
   if(rConvertedValue > 1.E+8 .or. rConvertedValue < 1.0E-3) then
 
-    write(sC_w_units,FMT="(g14.3,1x,a)") rConvertedValue, trim(sUnits)
+    write(sC_w_units,FMT="(g16.3,1x,a)") rConvertedValue, trim(sUnits)
 
   else
 
-    write(sC_w_units,FMT="(f14.5,1x,a)") rConvertedValue, trim(sUnits)
+    write(sC_w_units,FMT="(f16.3,1x,a)") rConvertedValue, trim(sUnits)
 
   end if
-
-  return
 
 end function sf_C_units
 
@@ -1979,17 +1957,17 @@ function sf_L_units(pConfig,rValue)  result(sL_w_units)
 
   sUnits = LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits
 
-  if(rConvertedValue > 1.E+3 .and. rConvertedValue <= 1.0E+7) then
+  if(rConvertedValue > 1.E+3 .and. rConvertedValue <= 1.0E+11) then
 
-    write(sL_w_units,FMT="(f14.0)") rConvertedValue
+    write(sL_w_units,FMT="(f16.0)") rConvertedValue
 
   elseif(rConvertedValue > 10. .and. rConvertedValue <= 1.0E+3) then
 
-    write(sL_w_units,FMT="(f14.1)") rConvertedValue
+    write(sL_w_units,FMT="(f16.1)") rConvertedValue
 
   else  ! either really small or really big - allow scientific notation
 
-    write(sL_w_units,FMT="(g14.2)") rConvertedValue
+    write(sL_w_units,FMT="(g16.5)") rConvertedValue
 
   end if
 
@@ -2017,17 +1995,17 @@ function sf_L2_units(pConfig,rValue)  result(sL2_w_units)
 
   sUnits = trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits)//"**2"
 
-  if(rConvertedValue > 1.E+3 .and. rConvertedValue <= 1.0E+7) then
+  if(rConvertedValue > 1.E+3 .and. rConvertedValue <= 1.0E+11) then
 
-    write(sL2_w_units,FMT="(f14.0,1x,a)") rConvertedValue, trim(sUnits)
+    write(sL2_w_units,FMT="(f16.0,1x,a)") rConvertedValue, trim(sUnits)
 
   elseif(rConvertedValue > 10. .and. rConvertedValue <= 1.0E+3) then
 
-    write(sL2_w_units,FMT="(f14.1,1x,a)") rConvertedValue, trim(sUnits)
+    write(sL2_w_units,FMT="(f16.1,1x,a)") rConvertedValue, trim(sUnits)
 
   else  ! either really small or really big - allow scientific notation
 
-    write(sL2_w_units,FMT="(g14.2,1x,a)") rConvertedValue, trim(sUnits)
+    write(sL2_w_units,FMT="(g16.5,1x,a)") rConvertedValue, trim(sUnits)
 
   end if
 

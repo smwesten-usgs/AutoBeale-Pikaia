@@ -47,6 +47,7 @@ function ga_beale(iNumBounds,x)  result(rValue)
   iBeginDate = MINVAL(pFlow%iJulianDay)
   iDeltaDate = MAXVAL(pFlow%iJulianDay) - MINVAL(pFlow%iJulianDay)
 
+  ! keep track of how many times this routine has been called
   pConfig%iFuncCallNum = pConfig%iFuncCallNum + 1
 
 !  print *, "BEGIN:",MINVAL(pFlow%iJulianDay)
@@ -76,11 +77,9 @@ function ga_beale(iNumBounds,x)  result(rValue)
     call gregorian_date(pB%iStartDate, iB_Year, iB_Month, iB_Day)
     call gregorian_date(pB%iEndDate, iE_Year, iE_Month, iE_Day)
 
-    write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") &
-      iB_Month,iB_Day,iB_Year
+    write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") iB_Month,iB_Day,iB_Year
     pB%sStartDate = trim(sBuf)
-    write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") &
-      iE_Month,iE_Day,iE_Year
+    write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") iE_Month,iE_Day,iE_Year
     pB%sEndDate = trim(sBuf)
 
     if(lValid) then
@@ -130,14 +129,14 @@ function ga_beale(iNumBounds,x)  result(rValue)
 !      pB%rMeanSampleLoad = 0.
 
       iNumInvalidStrata = iNumInvalidStrata + 1
+      exit
 
     end if
 
   end do    ! loop over all strata members
 
-  ! now that we have considered all the strata, are there any invalid
-  ! strata members?  If so, return negative value; else return value
-  ! based on
+  ! are there any invalid strata members?  If so, return negative value;
+  ! else return value as calculated
 
   if(iNumInvalidStrata > 0) then
 
@@ -156,42 +155,21 @@ function ga_beale(iNumBounds,x)  result(rValue)
 
     pConfig%rCombinedLoadCI = rf_compute_CI(r_edf, pConfig%rCombinedMSE)
 
-    pConfig%rCombinedLoadAnnualized = pConfig%rCombinedLoad * &
-      365. / REAL(pConfig%iTotNumDays,kind=T_REAL)
+    pConfig%rCombinedLoadAnnualized = pConfig%rCombinedLoad * 365. / REAL(pConfig%iTotNumDays,kind=T_REAL)
 
     pConfig%rCombinedLoadAnnualizedCI = rf_compute_CI(r_edf, &
        pConfig%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, &
          kind=T_REAL))
 
+    ! 'rValue' is effectively the objective function value that Pikaia sees
+    ! upon return from this function; Pikaia is trying to maximize this value
+
 !    rValue = 1./(SUM(pBealeStats(1:iNumBounds+1)%rStratumMeanSquareError))*1.e+6
-
-     rValue = 1. / pConfig%rCombinedRMSE * 1.e+6
-
+!     rValue = 1. / pConfig%rCombinedRMSE * 1.e+6
+     rValue = 1. / pConfig%rCombinedMSE * 1.e+6
 !    rValue = 1. / pConfig%rCombinedLoadCI * 1.e+6
 
   end if
-
-!  if(COUNT(pBealeStats(1:n+1)%iNumSamples<2)/=0) then
-!  if(lFALSE) then
-
-!if(iNumInvalidStrata>0) then
-!
-!    write(LU_ECHO_OUT,FMT="('Load',',',500(f16.4,','))") &
-!      (pBealeStats(i)%rDailyCorrectedLoadEstimate,i=1,iNumBounds+1)
-!    write(LU_ECHO_OUT,FMT="('NumSamples',',',500(i10,','))") &
-!      (pBealeStats(i)%iNumSamples,i=1,iNumBounds+1)
-!    write(LU_ECHO_OUT,FMT="('RVal',','500(f24.4,','))") &
-!      (pBealeStats(i)%rStratumMeanSquareError,i=1,iNumBounds+1)
-!    write(LU_ECHO_OUT,FMT="('Dates',','500(a10,','))") &
-!      (pBealeStats(i)%sStartDate,pBealeStats(i)%sEndDate,i=1,iNumBounds+1)
-!    write(LU_ECHO_OUT,FMT="('Fitness:',',',f18.3)") rValue
-!    write(LU_ECHO_OUT,FMT=*) ' '
-!
-!    flush(LU_ECHO_OUT)
-!
-!end if
-
-  return
 
 end function ga_beale
 

@@ -118,7 +118,7 @@ subroutine pikaia_driver(pConfig, pBestConfig)
   ctrl(2) = iPikaiaGenerationLength
   ctrl(3) = iPikaiaNumSigFigs       ! number of significant figures in chromosome
   ctrl(4) = 0.85                    ! crossover probability
-  ctrl(5) = 2     ! 2=one-point, adjustable rate based on fitness
+  ctrl(5) = 5     ! 2=one-point, adjustable rate based on fitness
   ctrl(7) = 0.005 ! initial mutation rate
   ctrl(8) = 0.25  ! maximum mutation rate
   ctrl(9) = 1.0
@@ -293,7 +293,7 @@ subroutine pikaia_driver(pConfig, pBestConfig)
 
     end if
 
-!    call bealecalc_orig(pConfig, pFlow, pConc, pBealeStats)
+    call bealecalc_orig(pConfig, pFlow, pConc, pBealeStats)
 
     call save_best(pBestConfig,pConfig)
 
