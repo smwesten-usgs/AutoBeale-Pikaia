@@ -1,9 +1,11 @@
-module beale_pikaia_func
+module pikaia_function
 
 use types
-use genetic_algorithm
+use pikaia
 use beale
 use beale_data
+use strata
+use output
 
 implicit none
 
@@ -13,10 +15,10 @@ contains
 ! a vector of real numbers [0,1] that are converted in this function
 ! to integer-valued stratum boundaries.
 !
-! This function forms the strata, then calculates the total RMSE
-! over all strata and reports this back to PIKAIA.
+! This function forms the strata, calls the Beale calculation function,
+! then calculates the total RMSE over all strata and reports this back to PIKAIA.
 
-function ga_beale(iNumBounds,x)  result(rValue)
+function evaluate_fitness_function(iNumBounds,x)  result(rValue)
 
   implicit none
 
@@ -42,7 +44,7 @@ function ga_beale(iNumBounds,x)  result(rValue)
   iNumInvalidStrata = 0
 
   ! make sure all accumulators are zeroed out prior to calculations
-  call reset_bealestats(pBealeStats)
+  call reset_stratum_stats(pStrata)
 
   iBeginDate = MINVAL(pFlow%iJulianDay)
   iDeltaDate = MAXVAL(pFlow%iJulianDay) - MINVAL(pFlow%iJulianDay)
@@ -71,31 +73,31 @@ function ga_beale(iNumBounds,x)  result(rValue)
 
   ! loop over all strata members
   do i=1,iNumBounds+1
-    pB=>pBealeStats(i)
-    call assemble_strata(pConfig,pFlow,pConc,pB,i,lValid)
+    pStratum=>pStrata(i)
+    call assemble_strata(pConfig,pFlow,pConc,pStratum,i,lValid)
 
-    call gregorian_date(pB%iStartDate, iB_Year, iB_Month, iB_Day)
-    call gregorian_date(pB%iEndDate, iE_Year, iE_Month, iE_Day)
+    call gregorian_date(pStratum%iStartDate, iB_Year, iB_Month, iB_Day)
+    call gregorian_date(pStratum%iEndDate, iE_Year, iE_Month, iE_Day)
 
     write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") iB_Month,iB_Day,iB_Year
-    pB%sStartDate = trim(sBuf)
+    pStratum%sStartDate = trim(sBuf)
     write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") iE_Month,iE_Day,iE_Year
-    pB%sEndDate = trim(sBuf)
+    pStratum%sEndDate = trim(sBuf)
 
     if(lValid) then
 
       ! date values are legal and at least 2 samples exist for the
-      ! current stratum...  O.K. to call Beale_Estimator
+      ! current stratum...  O.K. to call calculate_Beale_load
 
-      call Beale_Estimator(pFlow,pConc,pB, pConfig)
+      call calculate_Beale_load(pFlow,pConc,pStratum, pConfig)
 
       pConfig%rCombinedLoad = pConfig%rCombinedLoad + &
-          pBealeStats(i)%rStratumCorrectedLoad
+          pStrata(i)%rStratumCorrectedLoad
 
       ! Equation M, Baum (1982)
       ! MSE = MSE_d * N^2 = sum(N_h^2 * MSE_hd)
       pConfig%rCombinedMSE = pConfig%rCombinedMSE + &
-          pBealeStats(i)%rStratumMeanSquareError
+          pStrata(i)%rStratumMeanSquareError
 
     else
 
@@ -107,26 +109,26 @@ function ga_beale(iNumBounds,x)  result(rValue)
       ! to settle on a stratum scheme that includes
       ! illegal start and end dates
 
-      pB%rDailyMeanSquareError = 0.
-      pB%rDailyCorrectedLoadEstimate = -99999.
-      pB%rStratumCorrectedLoad = -99999.
-      pB%rStratumMeanSquareError = 0.
-      pB%rDailyBiasedLoadEstimate = -99999.
-      pB%rDailyLoadBiasCorrection = -99999.
-      pB%rS_qq = rZERO
-      pB%rS_lq = rZERO
-      pB%rS_ll = rZERO
-      pB%rS_q2l = rZERO
-      pB%rS_ql2 = rZERO
-      pB%rS_q3 = rZERO
+      pStratum%rDailyMeanSquareError = 0.
+      pStratum%rDailyCorrectedLoadEstimate = -99999.
+      pStratum%rStratumCorrectedLoad = -99999.
+      pStratum%rStratumMeanSquareError = 0.
+      pStratum%rDailyBiasedLoadEstimate = -99999.
+      pStratum%rDailyLoadBiasCorrection = -99999.
+      pStratum%rS_qq = rZERO
+      pStratum%rS_lq = rZERO
+      pStratum%rS_ll = rZERO
+      pStratum%rS_q2l = rZERO
+      pStratum%rS_ql2 = rZERO
+      pStratum%rS_q3 = rZERO
 
 
-!      pB%iNumDays = 0
-!      pB%iNumSamples = 0
-!      pB%rMeanFlow = 0.
-!      pB%rMeanSampleFlow = 0.
-!      pB%rMeanSampleConc = 0.
-!      pB%rMeanSampleLoad = 0.
+!      pStratum%iNumDays = 0
+!      pStratum%iNumSamples = 0
+!      pStratum%rMeanFlow = 0.
+!      pStratum%rMeanSampleFlow = 0.
+!      pStratum%rMeanSampleConc = 0.
+!      pStratum%rMeanSampleLoad = 0.
 
       iNumInvalidStrata = iNumInvalidStrata + 1
       exit
@@ -151,7 +153,7 @@ function ga_beale(iNumBounds,x)  result(rValue)
   else
 
     pConfig%rCombinedRMSE = sqrt(pConfig%rCombinedMSE)
-    r_edf = rf_effective_degrees_freedom(pConfig,pBealeStats)
+    r_edf = rf_effective_degrees_freedom(pConfig,pStrata)
 
     pConfig%rCombinedLoadCI = rf_compute_CI(r_edf, pConfig%rCombinedMSE)
 
@@ -164,13 +166,13 @@ function ga_beale(iNumBounds,x)  result(rValue)
     ! 'rValue' is effectively the objective function value that Pikaia sees
     ! upon return from this function; Pikaia is trying to maximize this value
 
-!    rValue = 1./(SUM(pBealeStats(1:iNumBounds+1)%rStratumMeanSquareError))*1.e+6
+!    rValue = 1./(SUM(pStrata(1:iNumBounds+1)%rStratumMeanSquareError))*1.e+6
 !     rValue = 1. / pConfig%rCombinedRMSE * 1.e+6
      rValue = 1. / pConfig%rCombinedMSE * 1.e+6
 !    rValue = 1. / pConfig%rCombinedLoadCI * 1.e+6
 
   end if
 
-end function ga_beale
+end function evaluate_fitness_function
 
-end module beale_pikaia_func
+end module pikaia_function

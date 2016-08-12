@@ -7,14 +7,14 @@ contains
 
   subroutine write_R_script(pConfig,pBestConfig,pFlow,pConc)
 
-    type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
+    type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                         ! program options, flags, and other settings
 
-    type (T_CONFIG), pointer :: pBestConfig ! pointer to data structure that contains
+    type (CONFIG_T), pointer :: pBestConfig ! pointer to data structure that contains
                                         ! program options, flags, and other settings
 
-    type (T_FLOW), dimension(:), pointer :: pFlow
-    type (T_CONC), dimension(:), pointer :: pConc
+    type (FLOW_T), dimension(:), pointer :: pFlow
+    type (CONC_T), dimension(:), pointer :: pConc
 
     character(len=256) :: s_WD = ""
     character(len=256) :: s_RD = ""
@@ -367,5 +367,151 @@ contains
 
   end subroutine write_R_script
 
+
+  subroutine print_short_report(pConfig, pConc)
+
+    type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
+                                          ! program options, flags, and other settings
+    type (CONC_T), dimension(:), pointer :: pConc
+
+    character (len=1)   :: sTab = CHAR(9)
+    character (len=32)  :: sTimeStamp
+
+  !  if(pConfig%lJackknife) then
+
+      sTimeStamp = make_timestamp()
+
+      write(LU_SHORT_RPT, &
+        FMT="(12a,i5,a,f18.2,a,a,a,5(f18.2,a),ES16.4,a,3(f18.2,a),i10)")  &
+           trim(sTimeStamp), sTab,                                              &
+          trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,    &
+          trim(pConc(1)%sConstituentName), sTab,                                &
+          trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab,         &
+          pConfig%iMaxNumStrata,sTab,pConfig%rCombinedLoad                      &
+            / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor,sTab,        &
+          trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab,                 &
+          pConfig%rCombinedLoadCI                                               &
+            / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
+          pConfig%rCombinedLoadAnnualized                                       &
+            / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
+          pConfig%rCombinedLoadAnnualizedCI                                     &
+            / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
+          pConfig%rJackCombinedLoadAnnualized                                   &
+            / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
+          pConfig%rJackCombinedLoadAnnualizedCI                                 &
+            / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
+          pConfig%rTotalFlowAnnualized, sTab,                                   &
+          pConfig%rCombinedMSE, sTab,pConfig%rCombinedRMSE,                     &
+          sTab,pConfig%rCombinedEffectiveDegreesFreedom, sTab,                  &
+          pConfig%iFuncCallNum
+
+  !  else
+
+  !    write(LU_SHORT_RPT, &
+  !      FMT="(10a,i4,a,f18.2,a,a,a,3(f18.2,a),ES16.4,a,3(f18.2,a),i10)") &
+  !        trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,&
+  !        trim(pConc(1)%sConstituentName), sTab, &
+  !        trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab, &
+  !        pConfig%iMaxNumStrata,sTab,pConfig%rCombinedLoad,sTab, &
+  !        trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab, &
+  !        pConfig%rCombinedLoadCI, sTab, &
+  !        pConfig%rCombinedLoadAnnualized, sTab, &
+  !        pConfig%rCombinedLoadAnnualizedCI, sTab, &
+  !        pConfig%rTotalFlowAnnualized, sTab, &
+  !        pConfig%rCombinedMSE, sTab,pConfig%rCombinedRMSE,&
+  !        sTab,pConfig%rCombinedEffectiveDegreesFreedom, sTab, &
+  !        pConfig%iFuncCallNum
+  !
+  !  end if
+
+    flush(LU_SHORT_RPT)
+
+    return
+
+  end subroutine print_short_report
+
+!--------------------------------------------------------------------------------------------------
+
+  subroutine print_strata_summary(pConfig, iLU)
+
+    !! [ ARGUMENTS ]
+    type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
+                                          ! program options, flags, and other settings
+
+    integer (kind=T_INT), intent(in) :: iLU
+    integer (kind=T_INT) :: i
+    integer (kind=T_INT) :: iSYear, iSMonth, iSDay
+    integer (kind=T_INT) :: iEYear, iEMonth, iEDay
+
+
+  !  write(iLU,FMT=*) repeat("-",80)
+
+    write(iLU,FMT=*) ' SUMMARY OVER ALL STRATA:'
+
+    write(iLU,FMT="('    NUMBER OF STRATA:',i4)") pConfig%iMaxNumStrata
+
+    do i=1,pConfig%iMaxNumStrata
+
+      call gregorian_date(pConfig%iStrataBound(i - 1) + 1, iSYear, iSMonth, iSDay)
+      call gregorian_date(pConfig%iStrataBound(i), iEYear, iEMonth, iEDay)
+
+      write(iLU,&
+       FMT="(t7,i3,t15,' -- begins on:',3x,i2.2,'/',i2.2,'/'," &
+         //"i4,3x'ends on:',3x,i2.2,'/',i2.2,'/',i4)") i,&
+         iSMonth, iSDay, iSYear,iEMonth, iEDay, iEYear
+
+    end do
+
+    write(iLU, FMT="(/)")
+
+    write(iLU,&
+      FMT="('    COMBINED LOAD:',t31,a25)") &
+        trim(sf_L_units(pConfig,pConfig%rCombinedLoad))
+    write(iLU,&
+      FMT="('    CONFIDENCE INTERVAL:',t31,a25)") &
+        trim(sf_L_units(pConfig,pConfig%rCombinedLoadCI))
+
+    write(iLU,FMT=*) " "
+
+    write(iLU,&
+      FMT="('    COMBINED LOAD (PER YEAR):',t31,a25,a3)") &
+        trim(sf_L_units(pConfig,pConfig%rCombinedLoadAnnualized)),'/yr'
+
+    write(iLU,&
+      FMT="('    COMBINED LOAD CI:',t31,a25,a3)") &
+        trim(sf_L_units(pConfig,pConfig%rCombinedLoadAnnualizedCI)),'/yr'
+
+    write(iLU,&
+      FMT="('    TOTAL ANNNUALIZED FLOW:',t31,ES16.4,a)") &
+        pConfig%rTotalFlowAnnualized,' cubic meters'
+
+    write(iLU,FMT=*) " "
+
+    write(iLU,&
+      FMT="('    COMBINED MSE:',t31,a28)") &
+        trim(sf_L2_units(pConfig,pConfig%rCombinedMSE))
+    write(iLU,&
+      FMT="('    COMBINED RMSE:',t31,a25)") &
+        trim(sf_L_units(pConfig,pConfig%rCombinedRMSE))
+
+    write(iLU,&
+      FMT="('    COMBINED DEGREES FREEDOM:',t31,13x,f12.2)") &
+        pConfig%rCombinedEffectiveDegreesFreedom
+    write(iLU,&
+      FMT="('    NUMBER of strata boundary sets evaluated:',i10)") &
+        pConfig%iFuncCallNum
+
+    write(iLU,FMT=*) repeat("~",80)
+    write(iLU,FMT="(' ===> END OF SUMMARY for calculation with ',i3,' strata')") &
+      pConfig%iMaxNumStrata
+    write(iLU,FMT=*) repeat("~",80)
+
+    write(iLU,FMT=*) " "
+
+    flush(iLU)
+
+    return
+
+  end subroutine print_strata_summary
 
 end module output

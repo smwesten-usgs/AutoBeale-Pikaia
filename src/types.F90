@@ -53,13 +53,13 @@ module types
   integer (kind=T_INT), parameter :: iCONC_FILE_FORMAT_ORIGINAL = 0
   integer (kind=T_INT), parameter :: iCONC_FILE_FORMAT_USGS = 1
 
-  type, public :: T_CONVERSION
+  type, public :: UNIT_CONVERSION_T
     real (kind=T_REAL) :: rConversionFactor
     character (len=256) :: sUnits
     character (len=256) :: sUnitsSpelledOut
-  end type T_CONVERSION
+  end type UNIT_CONVERSION_T
 
-  type, public :: T_FLOW
+  type, public :: FLOW_T
     character (len=256) :: sAgencyCode
     character (len=256) :: sStationID
     integer (kind=T_INT) :: iYear = 0
@@ -69,9 +69,9 @@ module types
     character (len=256) :: sDate = "NA"
     real (kind=T_REAL) :: rFlow = - 9999.0
     logical (kind=T_LOGICAL) :: lSampleDay = lFALSE
-  end type T_FLOW
+  end type FLOW_T
 
-  type, public :: T_CONC
+  type, public :: CONC_T
     character (len=256) :: sTribName
     character (len=256) :: sConstituentName
     integer (kind=T_INT) :: iYear = 0
@@ -89,9 +89,9 @@ module types
     real (kind=T_REAL) :: rFlowSquared = -9999.0
     real (kind=T_REAL) :: rTemp = 0.
     logical (kind=T_LOGICAL) :: lInclude = lTRUE
-  end type T_CONC
+  end type CONC_T
 
-  type, public :: T_CONFIG
+  type, public :: CONFIG_T
     logical (kind=T_LOGICAL) :: lJackknife = lFALSE
     integer (kind=T_INT) :: iStartDate
     integer (kind=T_INT) :: iEndDate
@@ -149,14 +149,14 @@ module types
 
 
     real (kind=T_REAL),dimension(iMAX_STRATA) :: rPikaiaXValues
-  end type T_CONFIG
+  end type CONFIG_T
 
-  type, public :: T_JACKKNIFE
+  type, public :: JACKKNIFE_T
     real (kind=T_REAL) :: rEstimate
     real (kind=T_REAL) :: rEstimate_SQ
-  end type T_JACKKNIFE
+  end type JACKKNIFE_T
 
-  type, public :: T_BEALE_STATS
+  type, public :: STRATUM_STATS_T
     integer (kind=T_INT) :: iStartDate
     integer (kind=T_INT) :: iEndDate
 
@@ -188,7 +188,7 @@ module types
     real (kind=T_REAL) :: rS_q2l
     real (kind=T_REAL) :: rS_ql2
     real (kind=T_REAL) :: rS_q3
-  end type T_BEALE_STATS
+  end type STRATUM_STATS_T
 
 
   type,public :: T_MONTH
@@ -217,23 +217,23 @@ module types
 
   ! concentration conversion factors represent the values that one
   ! needs to multiply by in order to yield units of mg/L
-  type(T_CONVERSION), dimension(4),target :: CONC_UNITS = (/ &
-      T_CONVERSION(1.0E+3_T_REAL,'g/L','GRAMS PER LITER'), &
-      T_CONVERSION(1.0_T_REAL,'mg/L','MILLIGRAMS PER LITER'), &
-      T_CONVERSION(1.0E-3_T_REAL,'ug/L','MICROGRAMS PER LITER'), &
-      T_CONVERSION(1.0E-6_T_REAL,'ng/L','NANOGRAMS PER LITER') /)
+  type(UNIT_CONVERSION_T), dimension(4),target :: CONC_UNITS = (/ &
+      UNIT_CONVERSION_T(1.0E+3_T_REAL,'g/L','GRAMS PER LITER'), &
+      UNIT_CONVERSION_T(1.0_T_REAL,'mg/L','MILLIGRAMS PER LITER'), &
+      UNIT_CONVERSION_T(1.0E-3_T_REAL,'ug/L','MICROGRAMS PER LITER'), &
+      UNIT_CONVERSION_T(1.0E-6_T_REAL,'ng/L','NANOGRAMS PER LITER') /)
 
   ! flow conversion factors respresent the values that one needs to
   ! multiply by in order to yield cubic meters per second
-  type(T_CONVERSION), dimension(2),target :: FLOW_UNITS = (/ &
-      T_CONVERSION(0.028316849_T_REAL, 'cfs','CUBIC FEET PER SECOND'), &
-      T_CONVERSION(1.0_T_REAL,'cms','CUBIC METERS PER SECOND') /)
+  type(UNIT_CONVERSION_T), dimension(2),target :: FLOW_UNITS = (/ &
+      UNIT_CONVERSION_T(0.028316849_T_REAL, 'cfs','CUBIC FEET PER SECOND'), &
+      UNIT_CONVERSION_T(1.0_T_REAL,'cms','CUBIC METERS PER SECOND') /)
 
   ! load conversion factors represent the values that one needs to
   ! multiply load (in grams) by in order to yield kilograms
-  type(T_CONVERSION), dimension(2),target :: LOAD_UNITS = (/ &
-      T_CONVERSION(1.0E+3_T_REAL, 'MT','METRIC TONS'), &
-      T_CONVERSION(1.0_T_REAL,'Kg','KILOGRAMS') /)
+  type(UNIT_CONVERSION_T), dimension(2),target :: LOAD_UNITS = (/ &
+      UNIT_CONVERSION_T(1.0E+3_T_REAL, 'MT','METRIC TONS'), &
+      UNIT_CONVERSION_T(1.0_T_REAL,'Kg','KILOGRAMS') /)
 
   ! lingua Franca for load calculations is Kg/day
   ! mg/L * cms * 86.4 yields load in kg/day

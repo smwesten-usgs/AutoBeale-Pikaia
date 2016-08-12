@@ -3,22 +3,22 @@ module beale_data
 use types
 implicit none
 
-  type (T_CONFIG), pointer :: pConfig
-  type (T_CONFIG), pointer :: pBestConfig
-  type (T_CONFIG), pointer :: pTestConfig
+  type (CONFIG_T), pointer :: pConfig
+  type (CONFIG_T), pointer :: pBestConfig
+  type (CONFIG_T), pointer :: pTestConfig
 
-  integer, parameter :: iPikaiaMaxParameters = 32
+  integer, parameter :: PIKAIA_MAX_NUM_PARAMETERS                      = 32
+  integer, parameter :: PIKAIA_MAX_POPULATION_SIZE                     = 150
+  integer, parameter :: PIKAIA_MAX_GENERATION_LENGTH                   = 500
+  integer, parameter :: PIKAIA_MAX_NUM_OPTIMIZATION_ATTEMPTS           = 3
+  integer, parameter :: PIKAIA_MAX_NUM_ITERATIONS_WITHOUT_IMPROVEMENT  = 12
+  integer, parameter :: PIKAIA_OUTPUT_OPTION                           = 0
+  integer, parameter :: PIKAIA_NUM_GENES_IN_CHROMOSOME                 = 7
 
-  integer, parameter :: iPikaiaPopulationSize = 150
-  integer, parameter :: iPikaiaGenerationLength = 500
-  integer, parameter :: iPikaiaMaxNumAttempts = 3
-  integer, parameter :: iPikaiaMaxIterations_w_NoChange = 12
-  integer, parameter :: iPikaiaOutputOption = 0
-  integer, parameter :: iPikaiaNumSigFigs = 7
-
-  type (T_FLOW), dimension(:), pointer, save :: pFlow
-  type (T_CONC), dimension(:), pointer, save :: pConc
-  type (T_BEALE_STATS), dimension(:), pointer, save :: pBealeStats
-  type (T_BEALE_STATS), pointer, save :: pB
+  type (FLOW_T), dimension(:), pointer           :: pFlow
+  type (CONC_T), dimension(:), pointer           :: pConc
+  type (STRATUM_STATS_T), dimension(:), pointer  :: pStrata
+  type (STRATUM_STATS_T), pointer                :: pStratum
+  type (STRATUM_STATS_T), dimension(:), pointer  :: pTestStrata
 
 end module beale_data

@@ -1,481 +1,17 @@
 module beale
 
   use types
-
+  use units
   implicit none
 
   contains
 
-subroutine read_data(pConfig, pFlow, pConc)
-
-  ! code has been modified to read tab-delimited file as obtained
-  ! from USGS NWIS web interface
-
-  !! [ ARGUMENTS ]
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                        ! program options, flags, and other settings
-
-  type (T_FLOW), dimension(:), pointer :: pFlow
-  type (T_CONC), dimension(:), pointer :: pConc
-
-  ! [ LOCALS ]
-  integer (kind=T_INT) :: i
-  integer (kind=T_INT) :: iStat
-
-  real (kind=T_REAL) :: rValue
-
-  character (len=256) :: sRecord, sItem
-  character (len=256) :: sDateStr
-  character (len=256) :: sTribName
-  character (len=256) :: sBuf
-
-  integer (kind=T_INT) :: iB_Year, iB_Month, iB_Day
-  integer (kind=T_INT) :: iE_Year, iE_Month, iE_Day
-
-! read the flow data for a given run, which determines the span of the run (first time only)
-
-  i=0
-
-  write(LU_STD_OUT,*) ">> Reading FLOW data file"
-  do
-
-    read ( unit=LU_FLOWDAT, fmt="(a256)", iostat=iStat ) sRecord
-
-    if ( iStat < 0 ) exit     ! EOF mark
-    call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Terminating due to error reading FLOW file" )
-    if ( sRecord(1:1) == "#" ) cycle      ! Ignore comment lines
-    if(  sRecord(1:9) == "agency_cd" ) then
-      ! read another line and throw it away
-      read ( unit=LU_FLOWDAT, fmt="(a256)", iostat=iStat ) sRecord
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-           "Terminating due to error reading FLOW file" )
-	  cycle      ! Ignore header information
-    end if
-
-    ! if no read errors, increment loop counter
-    i=i+1
-
-    if(pConfig%iFlowFileFormat == iFLOW_FILE_FORMAT_ORIGINAL) then
-
-      call CleanUpCsv( sRecord)
-
-      pFlow(i)%sAgencyCode = "99999"
-      pFlow(i)%sStationID = "99999"
-      call Chomp( sRecord, pFlow(i)%sDate )
-
-      read(pFlow(i)%sDate(1:4),FMT=*,iostat=iStat) pFlow(i)%iYear
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Internal read error: pFlow(i)%iYear")
-
-	   read(pFlow(i)%sDate(5:6),FMT=*,iostat=iStat) pFlow(i)%iMonth
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Internal read error: pFlow(i)%iMonth")
-
-      read(pFlow(i)%sDate(7:8),FMT=*,iostat=iStat) pFlow(i)%iDay
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Internal read error: pFlow(i)%iDay")
-
-   	pFlow(i)%iJulianDay = julian_day ( pFlow(i)%iYear, &
-	     pFlow(i)%iMonth, pFlow(i)%iDay )
-
-    	sDateStr = pFlow(i)%sDate(1:4)//pFlow(i)%sDate(5:6)//pFlow(i)%sDate(7:8)
-
-      call Chomp( sRecord, sItem )
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!  *** ALERT ***  WE ARE CONVERTING INCOMING FLOWS TO CMS !!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      read (sItem,*,iostat=iStat) rValue
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Internal read error: pFlow(i)%rFlow; sItem="//trim(sItem))
-      pFlow(i)%rFlow = rValue * &
-          FLOW_UNITS(pConfig%iFlowUnitsCode)%rConversionFactor
-
-    elseif(pConfig%iFlowFileFormat == iFLOW_FILE_FORMAT_USGS) then
-
-      call Chomp_tab( sRecord, pFlow(i)%sAgencyCode )
-      call Chomp_tab( sRecord, pFlow(i)%sStationID )
-      call Chomp_tab( sRecord, pFlow(i)%sDate )
-
-      call Assert(LOGICAL(len_trim(pFlow(i)%sDate)>0,kind=T_LOGICAL), &
-        "Error reading date string in flow file;" &
-        //" have you specified the appropriate flow file input format?")
-
-      read(pFlow(i)%sDate(1:4),FMT=*) pFlow(i)%iYear
-	   read(pFlow(i)%sDate(6:7),FMT=*) pFlow(i)%iMonth
-      read(pFlow(i)%sDate(9:10),FMT=*) pFlow(i)%iDay
-
-   	pFlow(i)%iJulianDay = julian_day ( pFlow(i)%iYear, &
-	     pFlow(i)%iMonth, pFlow(i)%iDay )
-
-    	sDateStr = pFlow(i)%sDate(1:4)//pFlow(i)%sDate(6:7)//pFlow(i)%sDate(9:10)
-
-      call Chomp_tab( sRecord, sItem )
-
-      read (sItem,*) pFlow(i)%rFlow
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!  *** ALERT ***  WE ARE CONVERTING INCOMING FLOWS TO CMS !!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-      read (sItem,*,iostat=iStat) rValue
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Internal read error: pFlow(i)%rFlow; sItem="//trim(sItem))
-      pFlow(i)%rFlow = rValue * &
-          FLOW_UNITS(pConfig%iFlowUnitsCode)%rConversionFactor
-
-    else
-
-      call Assert(lFALSE,"Unknown or undefined input flow file format")
-
-    end if
-
-    call Assert(LOGICAL(pFlow(i)%iMonth > 0 .and. pFlow(i)%iMonth <= 12, &
-      kind=T_LOGICAL),"Month value out of range reading flow file")
-
-    call Assert(LOGICAL(pFlow(i)%iDay > 0 .and. pFlow(i)%iDay <= 31, &
-      kind=T_LOGICAL),"Day value out of range reading flow file")
-
-!   #     e  Value has been estimated.
-!   #
-!   agency_cd	site_no	datetime	04_00060_00003	04_00060_00003_cd
-!   5s	15s	16s	14s	14s
-!   USGS	040851385	2005-08-01	1970	Ae
-!   USGS	040851385	2005-08-02	2050	Ae
-
-	write(LU_STD_OUT,FMT="(i3,': 'a10,1x,i9,1x,f12.4)") i,trim(sDateStr), &
-	   pFlow(i)%iJulianDay, rf_Q_disp(pConfig,pFlow(i)%rFlow)
-
-    flush(LU_STD_OUT)
-
-    if(pFlow(i)%rFlow < 0.0) then
-      write (*,*) "Missing value code for flow on ",trim(sDateStr), &
-        ". There MUST be a flow for every day of the year!"// &
-        " Aborting this run!"
-      stop
-    end if
-!
-  end do  ! end of loop over days
-
-  pConfig%iTotNumDays = pFlow(i)%iJulianDay - pFlow(1)%iJulianDay + 1
-
-  pConfig%iStartDate = pFlow(1)%iJulianDay
-  pConfig%iEndDate = pFlow(i)%iJulianDay
-
-  ! populate the start and end date text strings
-  call gregorian_date(MINVAL(pFlow%iJulianDay), iB_Year, iB_Month, iB_Day)
-  call gregorian_date(MAXVAL(pFlow%iJulianDay), iE_Year, iE_Month, iE_Day)
-
-  ! populate the starting and ending date strings
-  write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") &
-    iB_Month,iB_Day,iB_Year
-  pConfig%sStartDate = trim(sBuf)
-  write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") &
-    iE_Month,iE_Day,iE_Year
-  pConfig%sEndDate = trim(sBuf)
-
-  pConfig%rTotalFlow=SUM(pFlow%rFlow) * 86400_T_REAL    ! cubic meters of water
-  pConfig%rTotalFlowAnnualized =  pConfig%rTotalFlow * 365_T_REAL &
-      / REAL(pConfig%iTotNumDays,kind=T_REAL)
-
-
-! read the concentrations for a given load calculation, converting the units as you go
-! determine the maximum concentration for scaling purposes in the GUI
-
-  write(*,*)
-  write(*,*) ">> Reading CONCENTRATION data file"
-
-!  FORMAT EXPECTED IS SHOWN BELOW:
-!  #Trib Name	Constituent	Month	Day	Year	Hour	Minute	Concentration	Units
-!  Rock96	    NO23    	01  	06	1997	12	    00	    4.7	            mg/L
-!  Rock96	    NO23	    01	    13 	1997	12  	00	    3.6         	mg/L
-
-  i=0
-
-  conc_loop: do
-
-    read ( unit=LU_CONCDAT, fmt="(a256)", iostat=iStat ) sRecord
-
-    if ( iStat < 0 ) then
-      exit conc_loop    ! EOF mark
-	 end if
-    call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Terminating due to error reading CONCENTRATION file" )
-
-    if ( sRecord(1:1) == "#" ) cycle      ! Ignore comment lines
-
-    ! we have a non-comment record; increment loop counter
-    i=i+1
-
-    if(pConfig%iConcFileFormat == iCONC_FILE_FORMAT_ORIGINAL) then
-
-      ! file should look like the example below
-
-      ! Rock96NO23	9706161200	2.5
-
-      call CleanUpCsv( sRecord)
-
-      call Chomp( sRecord, pConc(i)%sTribName )
-
-      pConc(i)%sConstituentName = ""
-
-      call Chomp( sRecord, pConc(i)%sDate )
-
-      ! attempt to deal with 2-digit year values
-      if ( len_trim( pConc(i)%sDate ) == 10 ) then
-
-        read(pConc(i)%sDate(1:2),FMT=*) pConc(i)%iYear
-        read(pConc(i)%sDate(3:4),FMT=*) pConc(i)%iMonth
-        read(pConc(i)%sDate(5:6),FMT=*) pConc(i)%iDay
-
-        if(len_trim(pConc(i)%sDate(7:8))>0) &
-          read(pConc(i)%sDate(7:8),FMT=*) pConc(i)%iHour
-
-        if(len_trim(pConc(i)%sDate(9:10))>0) &
-          read(pConc(i)%sDate(9:10),FMT=*) pConc(i)%iMinute
-
-        ! assumption is that this is a pre-Y2K dataset
-        pConc(i)%iYear = pConc(i)%iYear + 1900
-
-      else
-
-        read(pConc(i)%sDate(1:4),FMT=*) pConc(i)%iYear
-        read(pConc(i)%sDate(5:6),FMT=*) pConc(i)%iMonth
-        read(pConc(i)%sDate(7:8),FMT=*) pConc(i)%iDay
-
-        if(len_trim(pConc(i)%sDate(9:10))>0) &
-          read(pConc(i)%sDate(9:10),FMT=*) pConc(i)%iHour
-
-        if(len_trim(pConc(i)%sDate(11:12))>0) &
-          read(pConc(i)%sDate(11:12),FMT=*) pConc(i)%iMinute
-
-      endif
-
-      write(pConc(i)%sDate,FMT="(i4,i2.2,i2.2)") pConc(i)%iYear, pConc(i)%iMonth,pConc(i)%iDay
-
-    	pConc(i)%iJulianDay = julian_day ( pConc(i)%iYear, pConc(i)%iMonth, pConc(i)%iDay )
-
-    	sDateStr = pConc(i)%sDate
-
-      call Chomp(sRecord,sItem)
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!  *** ALERT ***  WE ARE CONVERTING INCOMING CONC TO mg/L !!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-      read (sItem,*,iostat=iStat) rValue
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Internal read error: pConc(i)%rConc; sItem="//trim(sItem))
-      pConc(i)%rConc = rValue * &
-          CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor
-
-
-   elseif(pConfig%iConcFileFormat == iCONC_FILE_FORMAT_USGS) then
-
-! input should look like this (tab-delimited):
-!
-!#Trib Name	Constituent	Month	Day	Year	Hour	Minute	Concentration	Units
-!Rock96	NO23	01	06	1997	12	00	4.7	mg/L
-!Rock96	NO23	01	13	1997	12	00	3.6	mg/L
-
-!      call CleanUpCsv( sRecord)
-
-      call Chomp_tab( sRecord, pConc(i)%sTribName )
-
-      call Chomp_tab(sRecord,pConc(i)%sConstituentName)
-!      read (sItem,FMT=*,iostat=iStat) pConc(i)%sConstituentName
-!      call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-!        "Internal read error: consitutent name;" &
-!         //" read in "//trim(sItem))
-
-      call Chomp_tab(sRecord,sItem)
-      read (sItem,FMT=*,iostat=iStat) pConc(i)%iMonth
-      call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-        "Internal read error: month value;" &
-         //" read in "//trim(sItem))
-
-      call Chomp_tab(sRecord,sItem)
-      read (sItem,FMT=*,iostat=iStat) pConc(i)%iDay
-      call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-        "Internal read error: day value;" &
-         //" read in "//trim(sItem))
-
-      call Chomp_tab(sRecord,sItem)
-      read (sItem,FMT=*,iostat=iStat) pConc(i)%iYear
-      call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-        "Internal read error: year value;" &
-         //" read in "//trim(sItem))
-
-      call Chomp_tab(sRecord,sItem)
-      read (sItem,FMT=*,iostat=iStat) pConc(i)%iHour
-      call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-        "Internal read error: hour value;" &
-         //" read in "//trim(sItem))
-
-      call Chomp_tab(sRecord,sItem)
-      read (sItem,FMT=*,iostat=iStat) pConc(i)%iMinute
-      call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-        "Internal read error: minute value;" &
-         //" read in "//trim(sItem))
-
-      write(pConc(i)%sDate,FMT="(i4,i2.2,i2.2)") pConc(i)%iYear, &
-        pConc(i)%iMonth,pConc(i)%iDay
-
-   	pConc(i)%iJulianDay = julian_day ( pConc(i)%iYear, &
-   	pConc(i)%iMonth, pConc(i)%iDay )
-
-    	sDateStr = pConc(i)%sDate
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!  *** ALERT ***  WE ARE CONVERTING INCOMING CONC TO mg/L !!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-      call Chomp_tab(sRecord,sItem)
-      read (sItem,*,iostat=iStat) rValue
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Internal read error: pConc(i)%rConc; sItem="//trim(sItem))
-
-      call Chomp_tab(sRecord,sItem)
-      pConc(i)%sConcUnits = sItem
-
-      if(i==1) then
-        if(trim(pConc(i)%sConcUnits)=="mg/L" &
-            .or. trim(pConc(i)%sConcUnits)=="mg/l") then
-          pConfig%iConcUnitsCode = iMILLIGRAMS_PER_LITER
-        elseif(trim(pConc(i)%sConcUnits)=="g/L" &
-            .or. trim(pConc(i)%sConcUnits)=="gg/l") then
-          pConfig%iConcUnitsCode = iGRAMS_PER_LITER
-        elseif(trim(pConc(i)%sConcUnits)=="ug/L" &
-            .or. trim(pConc(i)%sConcUnits)=="ug/l") then
-          pConfig%iConcUnitsCode = iMICROGRAMS_PER_LITER
-        elseif(trim(pConc(i)%sConcUnits)=="ng/L" &
-            .or. trim(pConc(i)%sConcUnits)=="ng/l") then
-          pConfig%iConcUnitsCode = iNANOGRAMS_PER_LITER
-        else
-        call Assert(lFALSE, &
-          "No known units assigned in the concentration file;" &
-          //" read in '"//trim(pConc(i)%sConcUnits)//"'")
-        end if
-      end if
-
-      ! now apply the appropriate conversion factor
-      pConc(i)%rConc = rValue * &
-          CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor
-
-   else
-
-     call Assert(lFALSE,"Unknown or undefined input concentration file format")
-
-   endif
-
-   call Assert(LOGICAL(pConc(i)%iMonth > 0 .and. pConc(i)%iMonth <= 12, &
-     kind=T_LOGICAL),"Month value out of range reading concentration file")
-
-   call Assert(LOGICAL(pConc(i)%iDay > 0 .and. pConc(i)%iDay <= 31, &
-     kind=T_LOGICAL),"Day value out of range reading concentration file")
-
-!    if(pConc(i)%rConc < 0.0) exit
-
-  end do conc_loop
-
-  return
-
-end subroutine read_data
-
-!----------------------------------------------------------------------
-
-subroutine find_initial_strata(pConfig,pConc, n, x)
-
-  type (T_CONC), dimension(:), pointer :: pConc
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                      ! program options, flags, and other settings
-
-  integer (kind=T_INT), intent(in) :: n   ! number of BOUNDARIES
-
-  real (kind=T_REAL), dimension(:), intent(out) :: x
-
-  integer (kind=T_INT) :: i,j, iCount, iCount_old, iMinSamplesPerStrata
-
-  integer (kind=T_INT) :: iStartBound, iEndBound, iMidBound
-
-  integer (kind=T_INT) :: iTotDays
-
-  iMinSamplesPerStrata = MAX(pConfig%iCountUniqueSamples / (n+1),2)
-
-!  print *, 'iMinSamplesPerStrata:', iMinSamplesPerStrata
-
-  iStartBound = pConfig%iStartDate
-  iEndBound = pConfig%iStartDate
-
-  iTotDays = pConfig%iEndDate - pConfig%iStartDate + 1
-
-  n_strata: do i=1,n
-
-    iMidBound = -99999
-
-    do
-
-      iEndBound = iEndBound + 1
-
-      iCount = COUNT(pConc%iJulianDay>=iStartBound &
-               .and. pConc%ijulianDay <= iEndBound &
-               .and. pConc%lInclude)
-
-!      print *, iStartBound,'-',iEndBound,':',iCount
-
-      if(iCount < iMinSamplesPerStrata) cycle
-
-      if(iCount>=iMinSamplesPerStrata .and. iMidBound < 0) then
-        iMidBound = iEndBound
-        iCount_old = iCount
-      endif
-
-      if(iCount > iCount_old) then
-        ! select the midpoint between sample clusters and reset counters
-        x(i) = REAL(REAL(iEndBound+iMidBound)/2. - REAL(pConfig%iStartDate))&
-                 / REAL(iTotDays)
-
-        iCount = COUNT(pConc%iJulianDay>=iStartBound &
-               .and. pConc%ijulianDay <= (iEndBound+iMidBound)/2. &
-               .and. pConc%lInclude)
-
-
-!        print *, 'i:',i
-!        print *, 'iStartBound:',iStartBound
-!        print *, 'iEndBound:', iEndBound
-!        print *, 'iMidBound:',iMidbound
-!        print *, 'iTotDays:',iTotDays
-!        print *, 'iStartDate:',pConfig%iStartDate
-!        print *, 'iCount:', iCount
-!        print *, 'x(i):',x(i)
-!        print *, '---'
-
-        iStartBound = iEndBound
-        iMidBound = -99999
-        iCount_old = -99999
-        exit
-      end if
-
-       call Assert(LOGICAL(iEndBound <= pConfig%iEndDate,kind=T_LOGICAL), &
-           "Logic error in routine find_initial_strata")
-
-     end do
-
-  end do n_strata
-
-  return
-
-end subroutine find_initial_strata
-
-!----------------------------------------------------------------------
-
-subroutine Beale_Estimator(pFlow,pConc,pB, pConfig)
-
-  type (T_FLOW), dimension(:), pointer :: pFlow
-  type (T_CONC), dimension(:), pointer :: pConc
-  type (T_BEALE_STATS), pointer :: pB
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
+subroutine calculate_Beale_load(pFlow,pConc,pStratum, pConfig)
+
+  type (FLOW_T), dimension(:), pointer :: pFlow
+  type (CONC_T), dimension(:), pointer :: pConc
+  type (STRATUM_STATS_T), pointer :: pStratum
+  type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                       ! program options, flags, and other settings
 
 
@@ -490,7 +26,7 @@ subroutine Beale_Estimator(pFlow,pConc,pB, pConfig)
   real (kind=T_REAL) :: rTheta = rZERO
   real (kind=T_REAL) :: rBiasCorr_numerator, rBiasCorr_denominator
 
-! Data Types in type pB
+! Data Types in type pStratum
 !integer (kind=T_INT) :: nDays
 !integer (kind=T_INT) :: nNumSamples
 !real (kind=T_REAL) :: rMeanFlow
@@ -502,145 +38,142 @@ subroutine Beale_Estimator(pFlow,pConc,pB, pConfig)
 !real (kind=T_REAL) :: rDailyCorrectedLoadEstimate
 
   ! count of SAMPLES taken within current date range
-  pB%iNumSamples = COUNT(pConc%iJulianDay>=pB%iStartDate &
-                        .and. pConc%iJulianDay <=pB%iEndDate &
+  pStratum%iNumSamples = COUNT(pConc%iJulianDay>=pStratum%iStartDate &
+                        .and. pConc%iJulianDay <=pStratum%iEndDate &
                         .and. pConc%lInclude)
 
   ! count of ALL flow values within current date range
-  pB%iNumDays = COUNT(pFlow%iJulianDay>= pB%iStartDate .and. &
-                            pFlow%iJulianDay <= pB%iEndDate)
+  pStratum%iNumDays = COUNT(pFlow%iJulianDay>= pStratum%iStartDate .and. &
+                            pFlow%iJulianDay <= pStratum%iEndDate)
 
   ! "theta" is defined in Tin (1965) as (1/n - 1/N)
-!  rTheta = (1_T_REAL/REAL(pB%iNumSamples,kind=T_REAL)) &
-!               - (1_T_REAL/REAL(pB%iNumDays, kind=T_REAL))
+!  rTheta = (1_T_REAL/REAL(pStratum%iNumSamples,kind=T_REAL)) &
+!               - (1_T_REAL/REAL(pStratum%iNumDays, kind=T_REAL))
 
   ! theta is defined in Baun (1982) as the following:
-  rTheta = (1_T_REAL/REAL(pB%iNumSamples,kind=T_REAL))
+  rTheta = (1_T_REAL/REAL(pStratum%iNumSamples,kind=T_REAL))
 
   ! sum ALL flows within current date range (i.e. within current STRATUM)
-  rSum = SUM(pFlow%rFlow,(pFlow%iJulianDay>= pB%iStartDate .and. &
-                            pFlow%iJulianDay <= pB%iEndDate))
+  rSum = SUM(pFlow%rFlow,(pFlow%iJulianDay>= pStratum%iStartDate .and. &
+                            pFlow%iJulianDay <= pStratum%iEndDate))
 
   ! calculate mean STRATUM flow
-  if(pB%iNumDays>0) then
-    pB%rMeanFlow = rSum / pB%iNumDays
+  if(pStratum%iNumDays>0) then
+    pStratum%rMeanFlow = rSum / pStratum%iNumDays
   else
-    pB%rMeanFlow = -9999.0
+    pStratum%rMeanFlow = -9999.0
   end if
 
   ! sum SAMPLE flows within current date range (i.e. within current STRATUM)
-  rSum = SUM(pConc%rFlow,(pConc%iJulianDay>= pB%iStartDate &
-                      .and. pConc%iJulianDay <= pB%iEndDate &
+  rSum = SUM(pConc%rFlow,(pConc%iJulianDay>= pStratum%iStartDate &
+                      .and. pConc%iJulianDay <= pStratum%iEndDate &
                       .and. pConc%lInclude))
 
   ! calculate mean SAMPLE flow
-  if(pB%iNumSamples>0) then
-    pB%rMeanSampleFlow = rSum / pB%iNumSamples
-    rQ_bar = pB%rMeanSampleFlow
+  if(pStratum%iNumSamples>0) then
+    pStratum%rMeanSampleFlow = rSum / pStratum%iNumSamples
+    rQ_bar = pStratum%rMeanSampleFlow
     rQ_bar_sq = rQ_bar**2.
   else
-    pB%rMeanSampleFlow = -9999.0
+    pStratum%rMeanSampleFlow = -9999.0
     rQ_bar = 0.
     rQ_bar_sq = 0.
   end if
 
 
   ! sum SAMPLE *CONC* within current date range (i.e. within current STRATUM)
-  rSum = SUM(pConc%rConc,(pConc%iJulianDay>= pB%iStartDate &
-                       .and. pConc%iJulianDay <= pB%iEndDate &
+  rSum = SUM(pConc%rConc,(pConc%iJulianDay>= pStratum%iStartDate &
+                       .and. pConc%iJulianDay <= pStratum%iEndDate &
                        .and. pConc%lInclude))
 
   ! calculate mean STRATUM *CONC*
-  if(pB%iNumSamples>0) then
-    pB%rMeanSampleConc = rSum / pB%iNumSamples
+  if(pStratum%iNumSamples>0) then
+    pStratum%rMeanSampleConc = rSum / pStratum%iNumSamples
   else
-    pB%rMeanSampleConc = -9999.0
+    pStratum%rMeanSampleConc = -9999.0
   end if
 
   ! sum SAMPLE *LOAD* within current date range (i.e. within current STRATUM)
-  rSum = SUM(pConc%rDailyLoad,(pConc%iJulianDay>= pB%iStartDate &
-                       .and. pConc%iJulianDay <= pB%iEndDate &
+  rSum = SUM(pConc%rDailyLoad,(pConc%iJulianDay>= pStratum%iStartDate &
+                       .and. pConc%iJulianDay <= pStratum%iEndDate &
                        .and. pConc%lInclude))
 
   ! calculate mean STRATUM *LOAD*
-  if(pB%iNumSamples>0) then
-    pB%rMeanSampleLoad = rSum / pB%iNumSamples
-    rL_bar = pB%rMeanSampleLoad
+  if(pStratum%iNumSamples>0) then
+    pStratum%rMeanSampleLoad = rSum / pStratum%iNumSamples
+    rL_bar = pStratum%rMeanSampleLoad
     rL_bar_sq = rL_bar**2.
   else
-    pB%rMeanSampleLoad = -9999.0
+    pStratum%rMeanSampleLoad = -9999.0
     rL_bar = 0.
     rL_bar_sq = 0.
   end if
 
-  ! after call to calc_variance, we will have our std deviation
-  ! terms populated within pB
-  call calc_variance(pConc, pB)
+  ! after call to calculate_variance, we will have our std deviation
+  ! terms populated within pStratum
+  call calculate_variance(pConc, pStratum)
 
-  rBiasCorr_numerator = 1_T_REAL + (1_T_REAL / REAL(pB%iNumSamples,kind=T_REAL) &
-    * pB%rS_lq / rL_bar / rQ_bar)
+  rBiasCorr_numerator = 1_T_REAL + (1_T_REAL / REAL(pStratum%iNumSamples,kind=T_REAL) &
+    * pStratum%rS_lq / rL_bar / rQ_bar)
 
-  rBiasCorr_denominator = 1_T_REAL + (1_T_REAL / REAL(pB%iNumSamples,kind=T_REAL) &
-    * pB%rS_qq / (rQ_bar**2))
+  rBiasCorr_denominator = 1_T_REAL + (1_T_REAL / REAL(pStratum%iNumSamples,kind=T_REAL) &
+    * pStratum%rS_qq / (rQ_bar**2))
 
-  pB%rDailyLoadBiasCorrection = rBiasCorr_numerator &
+  pStratum%rDailyLoadBiasCorrection = rBiasCorr_numerator &
                    / rBiasCorr_denominator
 
-  pB%rDailyBiasedLoadEstimate = pB%rMeanFlow * &
-    pB%rMeanSampleLoad / pB%rMeanSampleFlow
+  pStratum%rDailyBiasedLoadEstimate = pStratum%rMeanFlow * &
+    pStratum%rMeanSampleLoad / pStratum%rMeanSampleFlow
 
-  pB%rDailyCorrectedLoadEstimate = pB%rDailyBiasedLoadEstimate * &
-     pB%rDailyLoadBiasCorrection
+  pStratum%rDailyCorrectedLoadEstimate = pStratum%rDailyBiasedLoadEstimate * &
+     pStratum%rDailyLoadBiasCorrection
 
-  rMSE_1 = rTheta * ( (pB%rS_qq / rQ_bar_sq) + &
-          (pB%rS_ll / rL_bar_sq) - &
-          (2_T_REAL * pB%rS_lq / (rL_bar * rQ_bar)) )
+  rMSE_1 = rTheta * ( (pStratum%rS_qq / rQ_bar_sq) + &
+          (pStratum%rS_ll / rL_bar_sq) - &
+          (2_T_REAL * pStratum%rS_lq / (rL_bar * rQ_bar)) )
 
-  rMSE_2 = rTheta**2 *(  2_T_REAL*(pB%rS_qq**2/rQ_bar_sq**2) - &
-            (4_T_REAL*pB%rS_qq*pB%rS_lq/(rQ_bar_sq * rL_bar * rQ_bar)) + &
-            (pB%rS_lq**2/((rL_bar*rQ_bar)**2)) + &
-            ((pB%rS_qq * pB%rS_ll)/(rQ_bar_sq * rL_bar_sq))  )
+  rMSE_2 = rTheta**2 *(  2_T_REAL*(pStratum%rS_qq**2/rQ_bar_sq**2) - &
+            (4_T_REAL*pStratum%rS_qq*pStratum%rS_lq/(rQ_bar_sq * rL_bar * rQ_bar)) + &
+            (pStratum%rS_lq**2/((rL_bar*rQ_bar)**2)) + &
+            ((pStratum%rS_qq * pStratum%rS_ll)/(rQ_bar_sq * rL_bar_sq))  )
 
 
   ! this term is from Tin (1965), equation V(t2), top of pp 299.
-  rMSE_3 = ( 2_T_REAL * rTheta /   REAL(pB%iNumDays,kind=T_REAL) ) * &
-    ( (pB%rS_q3 / rQ_bar**3) - &
-    (2_T_REAL*pB%rS_q2l / (rL_bar*rQ_bar**2)) + &
-    (pB%rS_ql2 / (rL_bar**2 *rQ_bar)) )
+  rMSE_3 = ( 2_T_REAL * rTheta /   REAL(pStratum%iNumDays,kind=T_REAL) ) * &
+    ( (pStratum%rS_q3 / rQ_bar**3) - &
+    (2_T_REAL*pStratum%rS_q2l / (rL_bar*rQ_bar**2)) + &
+    (pStratum%rS_ql2 / (rL_bar**2 *rQ_bar)) )
 
 !    write(*,FMT="(3(GS14.6,1x))") rMSE_1,rMSE_2,rMSE_3
 
   ! Equation C, Baum (1982), with third term from Tin (1965),
   ! for V(t2), top of page 299
-  pB%rDailyMeanSquareError = (rL_bar * pB%rMeanFlow / pB%rMeanSampleFlow)**2 &
-      * ( rMSE_1 + rMSE_2 + rMSE_3) !* REAL(pB%iNumDays,kind=T_REAL)**2
+  pStratum%rDailyMeanSquareError = (rL_bar * pStratum%rMeanFlow / pStratum%rMeanSampleFlow)**2 &
+      * ( rMSE_1 + rMSE_2 + rMSE_3) !* REAL(pStratum%iNumDays,kind=T_REAL)**2
 
   ! Equation E, Baum (1982)
-  pB%rStratumCorrectedLoad = pB%rDailyCorrectedLoadEstimate * &
-      REAL(pB%iNumDays, kind=T_REAL)
+  pStratum%rStratumCorrectedLoad = pStratum%rDailyCorrectedLoadEstimate * &
+      REAL(pStratum%iNumDays, kind=T_REAL)
 
   ! Equation F, Baum (1982)
-  pB%rStratumMeanSquareError = pB%rDailyMeanSquareError * &
-    REAL(pB%iNumDays**2,kind=T_REAL)
+  pStratum%rStratumMeanSquareError = pStratum%rDailyMeanSquareError * &
+    REAL(pStratum%iNumDays**2,kind=T_REAL)
 
-  pB%rDailyLoadCI = rf_compute_CI(REAL(pB%iNumSamples - 1, kind=T_REAL), &
-      pB%rDailyMeanSquareError)
-
-
-  pB%rStratumLoadCI = rf_compute_CI(REAL(pB%iNumSamples - 1, kind=T_REAL), &
-      pB%rStratumMeanSquareError)
+  pStratum%rDailyLoadCI = rf_compute_CI(REAL(pStratum%iNumSamples - 1, kind=T_REAL), &
+      pStratum%rDailyMeanSquareError)
 
 
-  return
+  pStratum%rStratumLoadCI = rf_compute_CI(REAL(pStratum%iNumSamples - 1, kind=T_REAL), &
+      pStratum%rStratumMeanSquareError)
 
-end subroutine Beale_Estimator
+end subroutine calculate_Beale_load
 
 !-----------------------------------------------------------------------
 
-subroutine calc_variance(pConc,pB)
+subroutine calculate_variance(pConc,pStratum)
 
-  type (T_CONC), dimension(:), pointer :: pConc
-  type (T_BEALE_STATS), pointer :: pB
+  type (CONC_T), dimension(:), pointer :: pConc
+  type (STRATUM_STATS_T), pointer :: pStratum
 
   integer (kind=T_INT) :: n, i
   real (kind=T_REAL) :: rSum
@@ -661,13 +194,13 @@ subroutine calc_variance(pConc,pB)
   rSum_ql2 = rZERO
   rTheta = rZERO
 
-  ! the value in pB must be current or we get garbage!
-  n = pB%iNumSamples
+  ! the value in pStratum must be current or we get garbage!
+  n = pStratum%iNumSamples
 
-  call Assert(LOGICAL(n==COUNT(pConc%iJulianDay >= pB%iStartDate &
-     .and. pConc%iJulianDay <= pB%iEndDate &
+  call Assert(LOGICAL(n==COUNT(pConc%iJulianDay >= pStratum%iStartDate &
+     .and. pConc%iJulianDay <= pStratum%iEndDate &
      .and. pConc%lInclude),kind=T_LOGICAL), &
-     "Mismatch between sample number calculation methods; routine calc_variance")
+     "Mismatch between sample number calculation methods; routine calculate_variance")
 
   if(n>1) then
 
@@ -675,37 +208,37 @@ subroutine calc_variance(pConc,pB)
 
     do i=1,size(pConc%rConc)
 
-      if(pConc(i)%iJulianDay >= pB%iStartDate &
-         .and. pConc(i)%iJulianDay <= pB%iEndDate &
+      if(pConc(i)%iJulianDay >= pStratum%iStartDate &
+         .and. pConc(i)%iJulianDay <= pStratum%iEndDate &
          .and. pConc(i)%lInclude) then
 
         ! update accumulators
 
         rSum_lq = rSum_lq + pConc(i)%rLoadTimesFlow &
-                   - (pB%rMeanSampleLoad * pB%rMeanSampleFlow)
+                   - (pStratum%rMeanSampleLoad * pStratum%rMeanSampleFlow)
 
-        rSum_qq = rSum_qq + (pConc(i)%rFlow - pB%rMeanSampleFlow)**2
+        rSum_qq = rSum_qq + (pConc(i)%rFlow - pStratum%rMeanSampleFlow)**2
 
-        rSum_ll = rSum_ll + (pConc(i)%rDailyLoad - pB%rMeanSampleLoad)**2
+        rSum_ll = rSum_ll + (pConc(i)%rDailyLoad - pStratum%rMeanSampleLoad)**2
 
-        rSum_q2l = rSum_q2l + (pConc(i)%rFlow - pB%rMeanSampleFlow)**2 &
-                    * (pConc(i)%rDailyLoad - pB%rMeanSampleLoad)
+        rSum_q2l = rSum_q2l + (pConc(i)%rFlow - pStratum%rMeanSampleFlow)**2 &
+                    * (pConc(i)%rDailyLoad - pStratum%rMeanSampleLoad)
 
-        rSum_q3 = rSum_q3 + (pConc(i)%rFlow - pB%rMeanSampleFlow)**3
+        rSum_q3 = rSum_q3 + (pConc(i)%rFlow - pStratum%rMeanSampleFlow)**3
 
-        rSum_ql2 = rSum_ql2 + (pConc(i)%rFlow - pB%rMeanSampleFlow) &
-                    * (pConc(i)%rDailyLoad-pB%rMeanSampleLoad)**2
+        rSum_ql2 = rSum_ql2 + (pConc(i)%rFlow - pStratum%rMeanSampleFlow) &
+                    * (pConc(i)%rDailyLoad-pStratum%rMeanSampleLoad)**2
 
       end if
 
     end do
 
-    pB%rS_lq = rTheta * rSum_lq     ! this is S_xy in Baun's paper, eqn B
-    pB%rS_qq = rTheta * rSum_qq     ! this is S_x**2 in Baun's paper, eqn B
-    pB%rS_ll = rTheta * rSum_ll
-    pB%rS_q2l = rTheta * rSum_q2l
-    pB%rS_q3 = rTheta * rSum_q3
-    pB%rS_ql2 = rTheta * rSum_ql2
+    pStratum%rS_lq = rTheta * rSum_lq     ! this is S_xy in Baun's paper, eqn B
+    pStratum%rS_qq = rTheta * rSum_qq     ! this is S_x**2 in Baun's paper, eqn B
+    pStratum%rS_ll = rTheta * rSum_ll
+    pStratum%rS_q2l = rTheta * rSum_q2l
+    pStratum%rS_q3 = rTheta * rSum_q3
+    pStratum%rS_ql2 = rTheta * rSum_ql2
 
 !     sumx3=sumx3 + (pConc(i)%rFlow-avflow)**3
 !   sumx2y=sumx2y + (pConc(i)%rFlow-avflow)**2 * (pConc(i)%rDailyLoad-avload)
@@ -713,109 +246,26 @@ subroutine calc_variance(pConc,pB)
 
   else
 
-    pB%rS_lq = rZERO
-    pB%rS_qq = rZERO
-    pB%rS_ll = rZERO
-    pB%rS_q2l = rZERO
-    pB%rS_q3 = rZERO
-    pB%rS_ql2 = rZERO
+    pStratum%rS_lq = rZERO
+    pStratum%rS_qq = rZERO
+    pStratum%rS_ll = rZERO
+    pStratum%rS_q2l = rZERO
+    pStratum%rS_q3 = rZERO
+    pStratum%rS_ql2 = rZERO
 
   end if
 
   return
 
-end subroutine calc_variance
+end subroutine calculate_variance
 
 !----------------------------------------------------------------------
 
-subroutine clean_flow_data(pFlow)
+subroutine calculate_daily_loads(pFlow,pConc,pConfig)
 
-  type (T_FLOW), dimension(:), pointer :: pFlow
-
-  integer (kind=T_INT) :: i, iCount, iStat, iJulianDay, iNextJulianDay
-  integer (kind=T_INT) :: iMM, iDD, iYYYY
-  character (len=256) :: sBuf
-
-  do i=1,size(pFlow)-1
-    iJulianDay = pFlow(i)%iJulianDay
-    iNextJulianDay = pFlow(i+1)%iJulianDay
-    call gregorian_date(iJulianDay,iYYYY, iMM, iDD)
-    write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") iMM, iDD, iYYYY
-    call Assert(LOGICAL(iJulianDay + 1 == iNextJulianDay, kind=T_LOGICAL), &
-      'Flow missing or out of order: '//trim(sBuf))
-    call Assert(LOGICAL(pFlow(i)%rFlow>rZERO, kind=T_LOGICAL), &
-      'Missing flow value (negative value detected): '//trim(sBuf))
-
-  end do
-
-  return
-
-end subroutine clean_flow_data
-
-!----------------------------------------------------------------------
-
-subroutine clean_concentration_data(pFlow,pConc)
-
-  type (T_FLOW), dimension(:), pointer :: pFlow
-  type (T_CONC), dimension(:), pointer :: pConc
-
-  type (T_CONC), dimension(:), pointer :: pCopy
-
-  integer (kind=T_INT) :: i, iCount, iStat, iNumValues, j, k
-
-  iCount = 0
-
-  ! here we are counting the number of days within the range of interest
-  ! for which we have one or more concentration data available
-  do i=MINVAL(pFlow%iJulianDay),MAXVAL(pFlow%iJulianDay)
-    if(COUNT(pConc%iJulianDay==i)>0) then
-      iCount=iCount+1
-    end if
-  end do
-
-  ALLOCATE(pCopy(iCount),STAT=iStat)
-  call Assert(iStat==0, &
-    "Problem allocating memory in function clean_conc_data")
-
-  iCount = 0
-  ! now iterate over the date range again, copying and averaging where
-  ! necessary
-  do i=MINVAL(pFlow%iJulianDay),MAXVAL(pFlow%iJulianDay)
-    iNumValues = COUNT(pConc%iJulianDay==i)
-    if(iNumValues>0) then
-      iCount = iCount + 1
-      do j=1,SIZE(pConc)
-        if(pConc(j)%iJulianDay == i) then
-          pCopy(iCount) = pConc(j)
-          if(iNumValues>1) then
-            pCopy(iCount)%iHour = 99
-            pCopy(iCount)%iMinute = 99
-            pCopy(iCount)%rConc = SUM(pConc%rConc,pConc%iJulianDay==i) &
-                             / iNumValues
-          end if
-        end if
-      end do
-    end if
-  end do
-
-  deallocate(pConc,STAT=iStat)
-  call Assert(iStat==0, &
-    "Problem deallocating memory in function clean_conc_data")
-
-  ! now point 'pConc' at our modified copy
-  pConc => pCopy
-
-  return
-
-end subroutine clean_concentration_data
-
-!----------------------------------------------------------------------
-
-subroutine calc_daily_load(pFlow,pConc,pConfig)
-
-  type (T_FLOW), dimension(:), pointer :: pFlow
-  type (T_CONC), dimension(:), pointer :: pConc
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
+  type (FLOW_T), dimension(:), pointer :: pFlow
+  type (CONC_T), dimension(:), pointer :: pConc
+  type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                         ! program options, flags, and other settings
 
   integer (kind=T_INT) :: i,j
@@ -874,52 +324,19 @@ subroutine calc_daily_load(pFlow,pConc,pConfig)
   end do
 
 
-end subroutine calc_daily_load
+end subroutine calculate_daily_loads
 
 !-----------------------------------------------------------------------
 
-subroutine assemble_strata(pConfig,pFlow,pConc,pB,iStrataNum,lValid)
-
-  ! input the parameters required to create a stratum boundary.
-
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                        ! program options, flags, and other settings
-  type (T_FLOW), dimension(:), pointer :: pFlow
-  type (T_CONC), dimension(:), pointer :: pConc
-  type (T_BEALE_STATS), pointer :: pB
-
-  integer (kind=T_INT),intent(in) :: iStrataNum
-  logical (kind=T_LOGICAL), intent(out) :: lValid
-
-  lValid = lTRUE
-
-  call Assert(LOGICAL(iStrataNum<=pConfig%iMaxNumStrata,kind=T_LOGICAL), &
-    "Too many strata specified in subroutine assemble_strata")
-
-  pB%iStartDate = pConfig%iStrataBound(iStrataNum - 1) + 1
-  pB%iEndDate = pConfig%iStrataBound(iStrataNum)
-
-  ! count of SAMPLES taken within current date range
-  pB%iNumSamples = COUNT(pConc%iJulianDay >= pB%iStartDate       &
-                         .and. pConc%iJulianDay <= pB%iEndDate   &
-                         .and. pConc%lInclude )
-
-  if(pB%iEndDate <= pB%iStartDate) then
-    lValid = lFALSE
-  elseif(pB%iNumSamples <= 2) then
-    lValid = lFALSE
-  end if
-
-end subroutine assemble_strata
 
 !-----------------------------------------------------------------------
 
-subroutine monthly_stats(iLU,pFlow,pConc,pConfig)
+subroutine calculate_and_report_monthly_stats(iLU,pFlow,pConc,pConfig)
 
   integer (kind=T_INT), intent(in) :: iLU         ! logical unit for output
-  type (T_FLOW), dimension(:), pointer :: pFlow
-  type (T_CONC), dimension(:), pointer :: pConc
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
+  type (FLOW_T), dimension(:), pointer :: pFlow
+  type (CONC_T), dimension(:), pointer :: pConc
+  type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                         ! program options, flags, and other settings
 
   integer (kind=T_INT) :: iBeginJulDay
@@ -1005,7 +422,7 @@ subroutine monthly_stats(iLU,pFlow,pConc,pConfig)
 
   write(iLU,FMT="(a)") repeat("-",72)
 
-end subroutine monthly_stats
+end subroutine calculate_and_report_monthly_stats
 
 !-----------------------------------------------------------------------
 
@@ -1013,7 +430,7 @@ function get_flow(iJulianDay,pFlow)  result(rFlow)
 
   ! [ ARGUMENTS ]
   integer (kind=T_INT),intent(in) :: iJulianDay
-  type (T_FLOW), dimension(:), pointer :: pFlow
+  type (FLOW_T), dimension(:), pointer :: pFlow
   real (kind=T_REAL) :: rFlow
 
   ! [ LOCALS ]
@@ -1057,14 +474,14 @@ end function get_flow
 
 !-----------------------------------------------------------------------
 
-subroutine bealecalc_orig(pConfig, pFlow, pConc, pB)
+subroutine bealecalc_orig(pConfig, pFlow, pConc, pStratum)
 
-      type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
+      type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                           ! program options, flags, and other settings
 
-      type (T_FLOW), dimension(:), pointer :: pFlow
-      type (T_CONC), dimension(:), pointer :: pConc
-      type (T_BEALE_STATS),dimension(:), pointer :: pB
+      type (FLOW_T), dimension(:), pointer :: pFlow
+      type (CONC_T), dimension(:), pointer :: pConc
+      type (STRATUM_STATS_T),dimension(:), pointer :: pStratum
 
       ! this routine lifted almost verbatim from Dr. Peter Richard's
       ! AutoBeale code
@@ -1112,8 +529,8 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pB)
       flowmu=0.0d0
 
       do l=1,ndays
-        if (pFlow(l)%iJulianDay<=pB(j)%iEndDate .and. &
-            pFlow(l)%iJulianDay>=pB(j)%iStartDate) then
+        if (pFlow(l)%iJulianDay<=pStratum(j)%iEndDate .and. &
+            pFlow(l)%iJulianDay>=pStratum(j)%iStartDate) then
           nf(j)=nf(j)+1 ! # daily flows in strata
           flowmu=flowmu+pFlow(l)%rFlow
           ! search for matching sample record
@@ -1149,8 +566,8 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pB)
         flowmu, avflow, avload
 
       do l=1,ndays        !now calculate the third order terms
-        if (pFlow(l)%iJulianDay<=pB(j)%iEndDate .and. &
-            pFlow(l)%iJulianDay>=pB(j)%iStartDate)then
+        if (pFlow(l)%iJulianDay<=pStratum(j)%iEndDate .and. &
+            pFlow(l)%iJulianDay>=pStratum(j)%iStartDate)then
           do i=1,SIZE(pConc%rFlow)
             if(pFlow(l)%iJulianDay == pConc(i)%iJulianDay) then
               sumx3=sumx3 + (pConc(i)%rFlow-avflow)**3
@@ -1234,7 +651,7 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pB)
       do i=1,pConfig%iMaxNumStrata
         tmp1=r(i)-1.0_T_REAL
 
-        rf = REAL(pB(i)%iNumDays,kind=T_REAL)
+        rf = REAL(pStratum(i)%iNumDays,kind=T_REAL)
         rn = REAL(pConfig%iTotNumDays,kind=T_REAL)
 
         cumfl=cumfl+flowes(i)*(rf/rn)        ! eqn. H in Baum (1982)
@@ -1295,12 +712,12 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pB)
 
 !-----------------------------------------------------------------------
 
-function rf_effective_degrees_freedom(pConfig,pB)  result(r_edf)
+function rf_effective_degrees_freedom(pConfig,pStratum)  result(r_edf)
 
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
+  type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                       ! program options, flags, and other settings
 
-  type (T_BEALE_STATS), dimension(:), pointer :: pB
+  type (STRATUM_STATS_T), dimension(:), pointer :: pStratum
 
   integer (kind=T_INT) :: i
 
@@ -1318,36 +735,36 @@ function rf_effective_degrees_freedom(pConfig,pB)  result(r_edf)
 
   if(pConfig%iMaxNumStrata==1) then
 
-    r_edf = REAL(pB(1)%iNumSamples,kind=T_REAL)-1.0_T_REAL  !r
-    rMSE_d = pB(1)%rDailyMeanSquareError
+    r_edf = REAL(pStratum(1)%iNumSamples,kind=T_REAL)-1.0_T_REAL  !r
+    rMSE_d = pStratum(1)%rDailyMeanSquareError
     pConfig%rCombinedDailyMSE = rMSE_d
 
   else
 
     do i=1,pConfig%iMaxNumStrata
 !    tmp1=r(i)-1.0_T_REAL
-      rNsamp_minus_one = REAL(pB(i)%iNumSamples,kind=T_REAL)-1.0_T_REAL  !r
+      rNsamp_minus_one = REAL(pStratum(i)%iNumSamples,kind=T_REAL)-1.0_T_REAL  !r
 
-      rN_h = REAL(pB(i)%iNumDays,kind=T_REAL)    !rf
+      rN_h = REAL(pStratum(i)%iNumDays,kind=T_REAL)    !rf
       rN = REAL(pConfig%iTotNumDays,kind=T_REAL)  !rn
 
 !    cumfl=cumfl+flowes(i)*(rf/rn)        ! eqn. H in Baum (1982)
 
       ! eqn. H in Baum (1982)
-      rL_d = rL_d + pB(i)%rDailyCorrectedLoadEstimate*(rN_h/rN)
+      rL_d = rL_d + pStratum(i)%rDailyCorrectedLoadEstimate*(rN_h/rN)
 
 !    cumse=cumse+(rmse(i)*rf*rf/(rn*rn))
 
       ! eqn. I in Baun (1982)
       ! This is the estimated total DAILY mean square error of the
       ! combined strata
-      rMSE_d = rMSE_d + pB(i)%rDailyMeanSquareError * rN_h**2 / rN**2
+      rMSE_d = rMSE_d + pStratum(i)%rDailyMeanSquareError * rN_h**2 / rN**2
 
       pConfig%rCombinedDailyMSE = rMSE_d
       pConfig%rCombinedDailyRMSE = sqrt(rMSE_d)
 
       !df=df+(rf**4*rmse(i)**2/tmp1)
-      r_edf=r_edf+(rN_h**4_T_REAL*pB(i)%rDailyMeanSquareError**2 &
+      r_edf=r_edf+(rN_h**4_T_REAL*pStratum(i)%rDailyMeanSquareError**2 &
           / rNsamp_minus_one)
 
     enddo
@@ -1422,165 +839,13 @@ end function rf_compute_CI
 
 !----------------------------------------------------------------------
 
-subroutine print_strata_stats(pConfig, pB, pFlow, pConc, iStrataNumber, iLU)
 
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                      ! program options, flags, and other settings
-  type (T_BEALE_STATS), pointer :: pB
-  type (T_FLOW), dimension(:), pointer :: pFlow
-  type (T_CONC), dimension(:), pointer :: pConc
+subroutine save_best_config(pBestConfig, pConfig)
 
-  integer (kind=T_INT), intent(in) :: iStrataNumber
-  integer (kind=T_INT), intent(in) :: iLU
-
-  integer (kind=T_INT) :: iSMonth, iSDay, iSYear
-  integer (kind=T_INT) :: iEMonth, iEDay, iEYear
-  integer (kind=T_INT) :: iMonth, iDay, iYear
-  integer (kind=T_INT) :: i
-
-!  write(iLU,FMT=*) repeat("-",60)
-
-  if(iStrataNumber == 1) then
-    write(iLU,FMT=*) repeat("~",80)
-    write(iLU,FMT="(' ===> BEGINNING OF SUMMARY for calculation with ',i3,' strata')") &
-      pConfig%iMaxNumStrata
-    write(iLU,FMT="(1x,'FLOW DATA: ',a)") "'"//trim(pConfig%sFlowFileName)//"'"
-    write(iLU,FMT="(1x,'CONENTRATION DATA: ',a)") "'"//trim(pConfig%sConcFileName)//"'"
-    write(iLU,FMT=*) repeat("~",80)
-  end if
-
-
-  write(iLU,FMT="(t5,'Stratum number: ',i5)") iStrataNumber
-
-  call gregorian_date(pB%iStartDate, iSYear, iSMonth, iSDay)
-  call gregorian_date(pB%iEndDate, iEYear, iEMonth, iEDay)
-
-  write(iLU,&
-   FMT="(t7,'begins on:',3x,i2.2,'/',i2.2,'/',i4,3x'ends on:',3x,i2.2,'/',i2.2,'/',i4)") &
-     iSMonth, iSDay, iSYear,iEMonth, iEDay, iEYear
-
-  write(iLU,FMT="(t7,'number of days in stratum: ',t35,i5)") &
-     pB%iNumDays
-
-  write(iLU, FMT=*) " "
-
-  write(iLU,FMT="(t7,'mean stratum FLOW: ',t48,a)") &
-     trim(sf_Q_units(pConfig,pB%rMeanFlow))
-
-  write(iLU,FMT="(t7,'RATIO stratum FLOW to sample FLOW: ',t48,f12.2)") &
-     pB%rMeanFlow / pB%rMeanSampleFlow
-
-  write(iLU, FMT=*) " "
-
-  write(iLU,FMT="(t7,'number of samples: ',t30,i5)") &
-     pB%iNumSamples
-
-  write(iLU, FMT=*) " "
-
-  if(iLU /= LU_STD_OUT) then
-
-    write(iLU,FMT= &
-      "('Date           Flow              Concentration       Load')")
-    write(iLU,FMT= &
-      "('---------    -----------------  -----------------  -----------------')")
-
-    do i=1,size(pConc%rConc)
-
-      if(pB%iStartDate<=pConc(i)%iJulianDay .and. &
-         pB%iEndDate>=pConc(i)%iJulianDay) then
-
-        call gregorian_date(pConc(i)%iJulianDay, iYear, iMonth, iDay)
-
-        write(iLU,FMT="(t4,i2.2,'/',i2.2,'/',i4.4,t16,a,t38,a,t60,a)") &
-          iMonth,iDay,iYear, &
-               trim(sf_Q_units(pConfig,pConc(i)%rFlow)), &
-               trim(sf_C_units(pConfig,pConc(i)%rConc)), &
-               trim(sf_L_units(pConfig,pConc(i)%rDailyLoad))
-
-      end if
-
-    end do
-
-    write(iLU,FMT="(t14,4(a20,2x))") &
-      '-------------','-------------','-------------'
-
-    write(iLU,FMT="(t4,'    MEAN: ',4(a20,2x))") &
-      trim(sf_Q_units(pConfig,pB%rMeanSampleFlow)), &
-      trim(sf_C_units(pConfig,pB%rMeanSampleConc)), &
-      trim(sf_L_units(pConfig,pB%rMeanSampleLoad))
-
-    write(iLU, FMT=*) " "
-
-    write(iLU, &
-      FMT="(t4,'Bias correction factor for STRATUM: ',t60,f14.3)") &
-         pB%rDailyLoadBiasCorrection
-
-    write(iLU, &
-      FMT="(t4,'Biased DAILY load estimate for STRATUM: ',t60,a)") &
-         trim(sf_L_units(pConfig,pB%rDailyBiasedLoadEstimate))
-
-  end if
-
-  write(iLU, &
-     FMT="(t4,'Corrected DAILY load estimate for STRATUM: ',t60,a)") &
-        trim(sf_L_units(pConfig,pB%rDailyCorrectedLoadEstimate))
-
-  write(iLU, &
-     FMT="(t4,'CI for corrected DAILY load estimate for STRATUM: ',t60,a)") &
-        trim(sf_L_units(pConfig,pB%rDailyLoadCI))
-
-  write(iLU, FMT=*) " "
-
-  write(iLU, &
-     FMT="(t4,'MSE estimate for DAILY load estimate for STRATUM: ',t60,a)") &
-        trim(sf_L2_units(pConfig,pB%rDailyMeanSquareError))
-
-  write(iLU, &
-     FMT="(t4,'RMSE estimate for DAILY load estimate for STRATUM: ',t60,a)") &
-        trim(sf_L_units(pConfig,sqrt(pB%rDailyMeanSquareError)))
-
-  write(iLU, FMT=*) " "
-
-  write(iLU, &
-     FMT="(t4,'Corrected load estimate for STRATUM: ',t60,a)") &
-        trim(sf_L_units(pConfig,pB%rStratumCorrectedLoad))
-
-  write(iLU, &
-     FMT="(t4,'CI for load estimate for STRATUM: ',t60,a)") &
-        trim(sf_L_units(pConfig,pB%rStratumLoadCI))
-
-  write(iLU, FMT=*) " "
-
-  write(iLU, &
-     FMT="(t4,'MSE estimate for load estimate for STRATUM: ',t60,a)") &
-        trim(sf_L2_units(pConfig,pB%rStratumMeanSquareError))
-
-  write(iLU, &
-     FMT="(t4,'RMSE estimate for load estimate for STRATUM: ',t60,a)") &
-        trim(sf_L_units(pConfig,sqrt(pB%rStratumMeanSquareError)))
-
-  write(iLU, FMT=*) " "
-
-  write(iLU,FMT=*) repeat("_",80)
-
-!  write(iLU,FMT="(t4,'S_qq:',t20,F14.3)") pB%rS_qq
-!  write(iLU,FMT="(t4,'S_ll:',t20,F14.3)") pB%rS_ll
-!  write(iLU,FMT="(t4,'S_lq:',t20,F14.3)") pB%rS_lq
-!  write(iLU,FMT="(t4,'S_q^2l:',t20,F14.3)") pB%rS_q2l
-!  write(iLU,FMT="(t4,'S_q^3:',t20,F14.3)") pB%rS_q3
-!  write(iLU,FMT="(t4,'S_ql^2:',t20,F14.3)") pB%rS_ql2
-
-  return
-
-end subroutine print_strata_stats
-
-
-subroutine save_best(pBestConfig, pConfig)
-
-  type (T_CONFIG), pointer :: pBestConfig ! pointer to data structure that contains
+  type (CONFIG_T), pointer :: pBestConfig ! pointer to data structure that contains
                                           ! program options, flags, and other settings
 
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
+  type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                       ! program options, flags, and other settings
 
   if(pConfig%rCombinedLoadCI < pBestConfig%rCombinedLoadCI) then
@@ -1639,54 +904,13 @@ subroutine save_best(pBestConfig, pConfig)
 
   return
 
-end subroutine save_best
-
-!----------------------------------------------------------------------
-subroutine reset_bealestats(pB)
-
-  type (T_BEALE_STATS), dimension(:), pointer :: pB
-
-  pB%iStartDate = 0
-  pB%iEndDate = 0
-
-  pB%sStartDate = "NONE"
-  pB%sEndDate = "NONE"
-
-  pB%iNumDays = 0
-  pB%iNumSamples = 0
-  pB%rMeanFlow = 0
-
-  pB%rMeanSampleFlow = rZERO
-  pB%rMeanSampleConc = rZERO
-  pB%rMeanSampleLoad = rZERO
-
-  pB%rDailyBiasedLoadEstimate = rZERO
-  pB%rDailyLoadBiasCorrection = rZERO
-  pB%rDailyCorrectedLoadEstimate = rZERO
-  pB%rDailyMeanSquareError = rZERO
-  pB%rDailySumOfSquareError = rZERO
-  pB%rDailyLoadCI = rZERO
-
-  pB%rStratumCorrectedLoad = rZERO
-  pB%rStratumMeanSquareError = rZERO
-  pB%rStratumLoadCI = rZERO
-
-  pB%rS_qq = rZERO
-  pB%rS_lq = rZERO
-  pB%rS_ll = rZERO
-  pB%rS_q2l = rZERO
-  pB%rS_ql2 = rZERO
-  pB%rS_q3 = rZERO
-
-  return
-
-end subroutine reset_bealestats
+end subroutine save_best_config
 
 !----------------------------------------------------------------------
 
 subroutine reset_config(pConfig)
 
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
+  type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                       ! program options, flags, and other settings
 
     pConfig%rCombinedLoad = rZERO
@@ -1708,307 +932,6 @@ subroutine reset_config(pConfig)
   return
 
 end subroutine reset_config
-
-!----------------------------------------------------------------------
-
-subroutine print_short_report(pConfig, pConc)
-
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                        ! program options, flags, and other settings
-  type (T_CONC), dimension(:), pointer :: pConc
-
-  character (len=1)   :: sTab = CHAR(9)
-  character (len=32)  :: sTimeStamp
-
-!  if(pConfig%lJackknife) then
-
-    sTimeStamp = make_timestamp()
-
-    write(LU_SHORT_RPT, &
-      FMT="(12a,i5,a,f18.2,a,a,a,5(f18.2,a),ES16.4,a,3(f18.2,a),i10)")  &
-         trim(sTimeStamp), sTab,                                              &
-        trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,    &
-        trim(pConc(1)%sConstituentName), sTab,                                &
-        trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab,         &
-        pConfig%iMaxNumStrata,sTab,pConfig%rCombinedLoad                      &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor,sTab,        &
-        trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab,                 &
-        pConfig%rCombinedLoadCI                                               &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
-        pConfig%rCombinedLoadAnnualized                                       &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
-        pConfig%rCombinedLoadAnnualizedCI                                     &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
-        pConfig%rJackCombinedLoadAnnualized                                   &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
-        pConfig%rJackCombinedLoadAnnualizedCI                                 &
-          / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
-        pConfig%rTotalFlowAnnualized, sTab,                                   &
-        pConfig%rCombinedMSE, sTab,pConfig%rCombinedRMSE,                     &
-        sTab,pConfig%rCombinedEffectiveDegreesFreedom, sTab,                  &
-        pConfig%iFuncCallNum
-
-!  else
-
-!    write(LU_SHORT_RPT, &
-!      FMT="(10a,i4,a,f18.2,a,a,a,3(f18.2,a),ES16.4,a,3(f18.2,a),i10)") &
-!        trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,&
-!        trim(pConc(1)%sConstituentName), sTab, &
-!        trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab, &
-!        pConfig%iMaxNumStrata,sTab,pConfig%rCombinedLoad,sTab, &
-!        trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab, &
-!        pConfig%rCombinedLoadCI, sTab, &
-!        pConfig%rCombinedLoadAnnualized, sTab, &
-!        pConfig%rCombinedLoadAnnualizedCI, sTab, &
-!        pConfig%rTotalFlowAnnualized, sTab, &
-!        pConfig%rCombinedMSE, sTab,pConfig%rCombinedRMSE,&
-!        sTab,pConfig%rCombinedEffectiveDegreesFreedom, sTab, &
-!        pConfig%iFuncCallNum
-!
-!  end if
-
-  flush(LU_SHORT_RPT)
-
-  return
-
-end subroutine print_short_report
-
-!----------------------------------------------------------------------
-
-subroutine print_strata_summary(pConfig, iLU)
-
-  !! [ ARGUMENTS ]
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                        ! program options, flags, and other settings
-
-  integer (kind=T_INT), intent(in) :: iLU
-  integer (kind=T_INT) :: i
-  integer (kind=T_INT) :: iSYear, iSMonth, iSDay
-  integer (kind=T_INT) :: iEYear, iEMonth, iEDay
-
-
-!  write(iLU,FMT=*) repeat("-",80)
-
-  write(iLU,FMT=*) ' SUMMARY OVER ALL STRATA:'
-
-  write(iLU,FMT="('    NUMBER OF STRATA:',i4)") pConfig%iMaxNumStrata
-
-  do i=1,pConfig%iMaxNumStrata
-
-    call gregorian_date(pConfig%iStrataBound(i - 1) + 1, iSYear, iSMonth, iSDay)
-    call gregorian_date(pConfig%iStrataBound(i), iEYear, iEMonth, iEDay)
-
-    write(iLU,&
-     FMT="(t7,i3,t15,' -- begins on:',3x,i2.2,'/',i2.2,'/'," &
-       //"i4,3x'ends on:',3x,i2.2,'/',i2.2,'/',i4)") i,&
-       iSMonth, iSDay, iSYear,iEMonth, iEDay, iEYear
-
-  end do
-
-  write(iLU, FMT="(/)")
-
-  write(iLU,&
-    FMT="('    COMBINED LOAD:',t31,a25)") &
-      trim(sf_L_units(pConfig,pConfig%rCombinedLoad))
-  write(iLU,&
-    FMT="('    CONFIDENCE INTERVAL:',t31,a25)") &
-      trim(sf_L_units(pConfig,pConfig%rCombinedLoadCI))
-
-  write(iLU,FMT=*) " "
-
-  write(iLU,&
-    FMT="('    COMBINED LOAD (PER YEAR):',t31,a25,a3)") &
-      trim(sf_L_units(pConfig,pConfig%rCombinedLoadAnnualized)),'/yr'
-
-  write(iLU,&
-    FMT="('    COMBINED LOAD CI:',t31,a25,a3)") &
-      trim(sf_L_units(pConfig,pConfig%rCombinedLoadAnnualizedCI)),'/yr'
-
-  write(iLU,&
-    FMT="('    TOTAL ANNNUALIZED FLOW:',t31,ES16.4,a)") &
-      pConfig%rTotalFlowAnnualized,' cubic meters'
-
-  write(iLU,FMT=*) " "
-
-  write(iLU,&
-    FMT="('    COMBINED MSE:',t31,a28)") &
-      trim(sf_L2_units(pConfig,pConfig%rCombinedMSE))
-  write(iLU,&
-    FMT="('    COMBINED RMSE:',t31,a25)") &
-      trim(sf_L_units(pConfig,pConfig%rCombinedRMSE))
-
-  write(iLU,&
-    FMT="('    COMBINED DEGREES FREEDOM:',t31,13x,f12.2)") &
-      pConfig%rCombinedEffectiveDegreesFreedom
-  write(iLU,&
-    FMT="('    NUMBER of strata boundary sets evaluated:',i10)") &
-      pConfig%iFuncCallNum
-
-  write(iLU,FMT=*) repeat("~",80)
-  write(iLU,FMT="(' ===> END OF SUMMARY for calculation with ',i3,' strata')") &
-    pConfig%iMaxNumStrata
-  write(iLU,FMT=*) repeat("~",80)
-
-  write(iLU,FMT=*) " "
-
-  flush(iLU)
-
-  return
-
-end subroutine print_strata_summary
-
-!----------------------------------------------------------------------
-
-function rf_Q_disp(pConfig,rValue)   result(rConvertedValue)
-
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                        ! program options, flags, and other settings
-
-  real (kind=T_REAL) :: rValue, rConvertedValue
-
-  rConvertedValue = rValue / &
-       FLOW_UNITS(pConfig%iFlowUnitsCode)%rConversionFactor
-
-  return
-
-end function rf_Q_disp
-
-!----------------------------------------------------------------------
-
-function sf_Q_units(pConfig,rValue)  result(sQ_w_units)
-
-  ! returns a formated text string containing the flow value converted
-  ! to display units, along with the description of those units
-
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                        ! program options, flags, and other settings
-
-  real (kind=T_REAL) :: rValue, rConvertedValue
-  character(len=256) :: sQ_w_units, sUnits
-
-  rConvertedValue = rValue / &
-     FLOW_UNITS(pConfig%iFlowUnitsCode)%rConversionFactor
-
-  sUnits = FLOW_UNITS(pConfig%iFlowUnitsCode)%sUnits
-
-  if(rConvertedValue > 1.E+10 .or. rConvertedValue < 1.0E-1) then
-
-    write(sQ_w_units,FMT="(g14.3,1x,a)") rConvertedValue, trim(sUnits)
-
-  else
-
-    write(sQ_w_units,FMT="(f14.1,1x,a)") rConvertedValue, trim(sUnits)
-
-  end if
-
-
-  return
-
-end function sf_Q_units
-
-!----------------------------------------------------------------------
-
-function sf_C_units(pConfig,rValue)  result(sC_w_units)
-
-  ! returns a formated text string containing the concentration value converted
-  ! to display units, along with the description of those units
-
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                        ! program options, flags, and other settings
-
-  real (kind=T_REAL) :: rValue, rConvertedValue
-  character(len=256) :: sC_w_units, sUnits
-
-  rConvertedValue = rValue / &
-     CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor
-
-  sUnits = CONC_UNITS(pConfig%iConcUnitsCode)%sUnits
-
-  if(rConvertedValue > 1.E+8 .or. rConvertedValue < 1.0E-3) then
-
-    write(sC_w_units,FMT="(g16.3,1x,a)") rConvertedValue, trim(sUnits)
-
-  else
-
-    write(sC_w_units,FMT="(f16.3,1x,a)") rConvertedValue, trim(sUnits)
-
-  end if
-
-end function sf_C_units
-
-!----------------------------------------------------------------------
-
-function sf_L_units(pConfig,rValue)  result(sL_w_units)
-
-  ! returns a formated text string containing the load value converted
-  ! to display units, along with the description of those units
-
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                        ! program options, flags, and other settings
-
-  real (kind=T_REAL) :: rValue, rConvertedValue
-  character(len=256) :: sL_w_units, sUnits
-
-  rConvertedValue = rValue / &
-     LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor
-
-  sUnits = LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits
-
-  if(rConvertedValue > 1.E+3 .and. rConvertedValue <= 1.0E+11) then
-
-    write(sL_w_units,FMT="(f16.0)") rConvertedValue
-
-  elseif(rConvertedValue > 10. .and. rConvertedValue <= 1.0E+3) then
-
-    write(sL_w_units,FMT="(f16.1)") rConvertedValue
-
-  else  ! either really small or really big - allow scientific notation
-
-    write(sL_w_units,FMT="(g16.5)") rConvertedValue
-
-  end if
-
-  sL_w_units = trim(sL_w_units)//" "//trim(sUnits)
-
-  return
-
-end function sf_L_units
-
-!----------------------------------------------------------------------
-
-function sf_L2_units(pConfig,rValue)  result(sL2_w_units)
-
-  ! returns a formated text string containing the load value converted
-  ! to display units, along with the description of those units
-
-  type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
-                                        ! program options, flags, and other settings
-
-  real (kind=T_REAL) :: rValue, rConvertedValue
-  character(len=256) :: sL2_w_units, sUnits
-
-  rConvertedValue = rValue / &
-     (LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor**2)
-
-  sUnits = trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits)//"**2"
-
-  if(rConvertedValue > 1.E+3 .and. rConvertedValue <= 1.0E+11) then
-
-    write(sL2_w_units,FMT="(f16.0,1x,a)") rConvertedValue, trim(sUnits)
-
-  elseif(rConvertedValue > 10. .and. rConvertedValue <= 1.0E+3) then
-
-    write(sL2_w_units,FMT="(f16.1,1x,a)") rConvertedValue, trim(sUnits)
-
-  else  ! either really small or really big - allow scientific notation
-
-    write(sL2_w_units,FMT="(g16.5,1x,a)") rConvertedValue, trim(sUnits)
-
-  end if
-
-  return
-
-end function sf_L2_units
 
 !----------------------------------------------------------------------
 

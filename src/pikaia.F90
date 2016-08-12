@@ -1,4 +1,4 @@
-module genetic_algorithm
+module pikaia
 
 ! Code converted using TO_F90 by Alan Miller
 ! Date: 2008-02-20  Time: 12:19:19
@@ -31,7 +31,7 @@ end type T_POPULATION
 
 contains
 
-SUBROUTINE pikaia(ff,n,ctrl,x,f,STATUS)
+SUBROUTINE perform_pikaia_optimization(ff,n,ctrl,x,f,STATUS)
 !=======================================================================
 !     Optimization (maximization) of user-supplied "fitness" function
 !     ff  over n-dimensional parameter space  x  using a basic genetic
@@ -83,6 +83,8 @@ SUBROUTINE pikaia(ff,n,ctrl,x,f,STATUS)
 use types
 use beale_data
 use beale
+use strata
+
 IMPLICIT NONE
 
 
@@ -264,7 +266,7 @@ iBeginTime = SECNDS(0.)
 
 rBestFit = rZERO
 
-call find_initial_strata(pConfig,pConc, n, rX_Val)
+ call find_initial_strata(pConfig,pConc, n, rX_Val)
 
 !     Compute initial (random but bounded) phenotypes
 DO  ip=1,30   ! loop over population
@@ -395,7 +397,7 @@ DO  ig=1,ngen
     iFitnessCount = 0
   endif
 
-  if(iFitnessCount > iPikaiaMaxIterations_w_NoChange) then
+  if(iFitnessCount > PIKAIA_MAX_NUM_ITERATIONS_WITHOUT_IMPROVEMENT) then
 !    print *, 'No significant change...Bailing'
 !    print *, rBestFit
 !    print *, fitns(ifit(np))
@@ -411,7 +413,7 @@ DO  k=1,n
 END DO
 f = fitns(ifit(np))
 
-END SUBROUTINE pikaia
+END SUBROUTINE perform_pikaia_optimization
 !********************************************************************
 
 FUNCTION urand()  result(fn_val)
@@ -1425,4 +1427,4 @@ CALL rnkpop(np,fitns,ifit,jfit)
 RETURN
 END SUBROUTINE newpop
 
-end module genetic_algorithm
+end module pikaia

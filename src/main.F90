@@ -2,8 +2,9 @@ program main
 
   use types
   use beale_data
-  use ga_driver
+  use run_pikaia
   use beale
+  use input
   use output
   use version_control, only      : GIT_COMMIT_HASH_STRING, GIT_BRANCH_STRING,   &
                                    BEALE_VERSION, COMPILE_DATE, COMPILE_TIME
@@ -25,7 +26,7 @@ program main
 
   real (kind=T_REAL) :: rThetaHat, rSum1,rAvg1,rSum2,rAvg2, rSE_jack, rSE_CI
 
-  type(T_JACKKNIFE), dimension(:),pointer :: pJackknife
+  type(JACKKNIFE_T), dimension(:),pointer :: pJackknife
 
   ALLOCATE (pConfig, STAT=iStat)
   call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
@@ -143,10 +144,10 @@ program main
 
   end do
 
-  write(sBuf,FMT="(i3)") iPikaiaMaxParameters
+  write(sBuf,FMT="(i3)") PIKAIA_MAX_NUM_PARAMETERS
 
   call Assert(LOGICAL(pConfig%iMaxEvalStrata>=0 .and. &
-    pConfig%iMaxEvalStrata < iPikaiaMaxParameters+1, &
+    pConfig%iMaxEvalStrata < PIKAIA_MAX_NUM_PARAMETERS+1, &
     kind=T_LOGICAL), &
     "Number of possible strata is limited to the range 1 to " &
     //trim(sBuf))
@@ -440,9 +441,9 @@ program main
     stop
   end if
 
-  call calc_daily_load(pFlow,pConc,pConfig)
+  call calculate_daily_loads(pFlow,pConc,pConfig)
 
-  call monthly_stats(LU_LONG_RPT,pFlow,pConc,pConfig)
+  call calculate_and_report_monthly_stats(LU_LONG_RPT,pFlow,pConc,pConfig)
 
   if(pConfig%lJackknife) then
 
