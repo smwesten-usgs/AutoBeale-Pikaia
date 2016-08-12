@@ -207,7 +207,7 @@ subroutine pikaia_driver(pConfig, pBestConfig)
     pConfig%iStrataBound(0) = MINVAL(pFlow%iJulianDay) - 1
     pConfig%iStrataBound(pConfig%iMaxNumStrata) = MAXVAL(pFlow%iJulianDay)
 
-    if(iNumStrata>(pConfig%iCountUniqueSamples-1)/2) then
+    if(iNumStrata > ( pConfig%iCountUniqueSamples - 1 ) /2 ) then
       write(6,FMT="('Not enough data to support ',i3,' strata...')") iNumStrata
       cycle
     end if
@@ -215,7 +215,7 @@ subroutine pikaia_driver(pConfig, pBestConfig)
     iNumAttempts = 1
 
     do
-      if(iNumAttempts>iPikaiaMaxNumAttempts) exit
+      if ( iNumAttempts > iPikaiaMaxNumAttempts ) exit
 
       call reset_config(pConfig)
 

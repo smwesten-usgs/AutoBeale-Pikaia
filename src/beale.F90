@@ -880,7 +880,6 @@ end subroutine calc_daily_load
 
 subroutine assemble_strata(pConfig,pFlow,pConc,pB,iStrataNum,lValid)
 
-
   ! input the parameters required to create a stratum boundary.
 
   type (T_CONFIG), pointer :: pConfig ! pointer to data structure that contains
@@ -901,17 +900,15 @@ subroutine assemble_strata(pConfig,pFlow,pConc,pB,iStrataNum,lValid)
   pB%iEndDate = pConfig%iStrataBound(iStrataNum)
 
   ! count of SAMPLES taken within current date range
-  pB%iNumSamples = COUNT(pConc%iJulianDay>=pB%iStartDate &
-                       .and. pConc%iJulianDay <=pB%iEndDate &
-                       .and. pConc%lInclude )
+  pB%iNumSamples = COUNT(pConc%iJulianDay >= pB%iStartDate       &
+                         .and. pConc%iJulianDay <= pB%iEndDate   &
+                         .and. pConc%lInclude )
 
   if(pB%iEndDate <= pB%iStartDate) then
     lValid = lFALSE
   elseif(pB%iNumSamples <= 2) then
     lValid = lFALSE
   end if
-
-  return
 
 end subroutine assemble_strata
 

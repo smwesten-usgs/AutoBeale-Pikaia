@@ -212,7 +212,7 @@ contains
         write(LU_R_SCRIPT,FMT=*) &
         'png(filename = '//sQt//trim(sPDF_PNG_Prefix)//'.png' &
         //sQt//', width = 1024, height = 768, units = '//sQt//'px'//sQt &
-        //', pointsize = 12, bg = "white", res = NA, restoreConsole = TRUE)'
+        //', pointsize = 12, bg = "white", res = NA)'     !, restoreConsole = TRUE)'
       else
         write(LU_R_SCRIPT,FMT=*) &
         'pdf(file = '//sQt//trim(sPDF_PNG_Prefix)//'.pdf' &
