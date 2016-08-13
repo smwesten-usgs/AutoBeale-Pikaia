@@ -5,7 +5,6 @@ implicit none
 
   type (CONFIG_T), pointer :: pConfig
   type (CONFIG_T), pointer :: pBestConfig
-  type (CONFIG_T), pointer :: pTestConfig
 
   integer, parameter :: PIKAIA_MAX_NUM_PARAMETERS                      = 32
   integer, parameter :: PIKAIA_MAX_POPULATION_SIZE                     = 150
@@ -19,6 +18,5 @@ implicit none
   type (CONC_T), dimension(:), pointer           :: pConc
   type (STRATUM_STATS_T), dimension(:), pointer  :: pStrata
   type (STRATUM_STATS_T), pointer                :: pStratum
-  type (STRATUM_STATS_T), dimension(:), pointer  :: pTestStrata
 
 end module beale_data

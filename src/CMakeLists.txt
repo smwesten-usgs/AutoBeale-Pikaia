@@ -11,3 +11,11 @@ add_executable( autobeale_pikaia
       types.F90
       units.F90
       generated/version_control.F90 )
+
+add_executable( autobeale_tests
+      beale.F90
+      beale_data.F90
+      output.F90
+      types.F90
+      units.F90
+      unit_tests.F90 )

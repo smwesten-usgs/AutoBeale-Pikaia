@@ -12,19 +12,17 @@ subroutine find_initial_strata(pConfig,pConc, n, x)
   type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                       ! program options, flags, and other settings
 
-  integer (kind=T_INT), intent(in) :: n   ! number of BOUNDARIES
+  integer (kind=T_INT), intent(in) :: n   ! number of BOUNDARIES between STRATA
+  real (kind=T_REAL), dimension(:), intent(inout) :: x
 
-  real (kind=T_REAL), dimension(:), intent(out) :: x
-
-  integer (kind=T_INT) :: i,j, iCount, iCount_old, iMinSamplesPerStrata
-
+  ! [ LOCALS ]
+  integer (kind=T_INT) :: i,j, iCount, iCount_old, iMinSamplesPerStratum
   integer (kind=T_INT) :: iStartBound, iEndBound, iMidBound
-
   integer (kind=T_INT) :: iTotDays
 
-  iMinSamplesPerStrata = MAX(pConfig%iCountUniqueSamples / (n+1),2)
+  iMinSamplesPerStratum = MAX(pConfig%iCountUniqueSamples / (n+1),2)
 
-!  print *, 'iMinSamplesPerStrata:', iMinSamplesPerStrata
+!  print *, 'iMinSamplesPerStratum:', iMinSamplesPerStratum
 
   iStartBound = pConfig%iStartDate
   iEndBound = pConfig%iStartDate
@@ -39,15 +37,16 @@ subroutine find_initial_strata(pConfig,pConc, n, x)
 
       iEndBound = iEndBound + 1
 
+      ! find the current number of samples present in this stratum
       iCount = COUNT(pConc%iJulianDay>=iStartBound &
                .and. pConc%ijulianDay <= iEndBound &
                .and. pConc%lInclude)
 
 !      print *, iStartBound,'-',iEndBound,':',iCount
 
-      if(iCount < iMinSamplesPerStrata) cycle
+      if(iCount < iMinSamplesPerStratum) cycle
 
-      if(iCount>=iMinSamplesPerStrata .and. iMidBound < 0) then
+      if(iCount>=iMinSamplesPerStratum .and. iMidBound < 0) then
         iMidBound = iEndBound
         iCount_old = iCount
       endif

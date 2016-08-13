@@ -65,11 +65,13 @@ set( CMAKE_LIBRARY_PATH ${LIB_PATH} )
 include( cmake/find_programs_and_libraries.cmake )
 
 if ("${OS}" STREQUAL "win_x64" OR "${OS}" STREQUAL "win_x86")
-  add_custom_target(copy ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/autobeale_pikaia.exe ${CMAKE_INSTALL_PREFIX}/autobeale_pikaia.exe
-  )
+  add_custom_target(copy
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/autobeale_pikaia.exe ${CMAKE_INSTALL_PREFIX}/autobeale_pikaia.exe
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/autobeale_tests.exe ${CMAKE_INSTALL_PREFIX}/autobeale_unit_tests.exe )
 else()
-  add_custom_target(copy ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/autobeale_pikaia ${CMAKE_INSTALL_PREFIX}/autobeale_pikaia
-  )
+  add_custom_target(copy
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/autobeale_pikaia ${CMAKE_INSTALL_PREFIX}/autobeale_pikaia
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/autobeale_tests ${CMAKE_INSTALL_PREFIX}/autobeale_unit_tests )
 endif()
 
 include( cmake/print_summary.cmake )

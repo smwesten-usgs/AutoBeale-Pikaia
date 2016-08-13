@@ -153,7 +153,7 @@ function evaluate_fitness_function(iNumBounds,x)  result(rValue)
   else
 
     pConfig%rCombinedRMSE = sqrt(pConfig%rCombinedMSE)
-    r_edf = rf_effective_degrees_freedom(pConfig,pStrata)
+    r_edf = calculate_effective_degrees_of_freedom(pConfig,pStrata)
 
     pConfig%rCombinedLoadCI = rf_compute_CI(r_edf, pConfig%rCombinedMSE)
 

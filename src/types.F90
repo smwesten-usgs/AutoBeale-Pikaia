@@ -3,7 +3,6 @@ module types
   !	Common declarations for the BEALE program.
 
   implicit none
-  save
 
   ! Define the sizes of base types used in the model
   integer*2, public, parameter :: T_LOGICAL = 4
@@ -191,29 +190,29 @@ module types
   end type STRATUM_STATS_T
 
 
-  type,public :: T_MONTH
+  type,public :: MONTH_T
     !! Container for calendar lookup information
     character (len=3) :: sName          ! Abbreviated name
 	  character (len=9) :: sFullName      ! Full month name
     integer (kind=T_INT) :: iStart      ! Starting (Julian) date
     integer (kind=T_INT) :: iEnd        ! Ending (Julian) date
 	  integer (kind=T_INT) :: iMonth      ! Month number (1-12)
-  end type T_MONTH
+  end type MONTH_T
 
   !! Month information
-  type ( T_MONTH ),dimension(12),target :: YEAR_INFO = (/ &
-      T_MONTH( 'JAN','JANUARY  ',   1,  31, 1 ), &
-      T_MONTH( 'FEB','FEBRUARY ',  32,  59, 2 ), &
-      T_MONTH( 'MAR','MARCH    ',  60,  90, 3 ), &
-      T_MONTH( 'APR','APRIL    ',  91, 120, 4 ), &
-      T_MONTH( 'MAY','MAY      ', 121, 151, 5 ), &
-      T_MONTH( 'JUN','JUNE     ', 152, 181, 6 ), &
-      T_MONTH( 'JUL','JULY     ', 182, 212, 7 ), &
-      T_MONTH( 'AUG','AUGUST   ', 213, 243, 8 ), &
-      T_MONTH( 'SEP','SEPTEMBER', 244, 273, 9 ), &
-      T_MONTH( 'OCT','OCTOBER  ', 274, 304, 10 ), &
-      T_MONTH( 'NOV','NOVEMBER ', 305, 334, 11 ), &
-      T_MONTH( 'DEC','DECEMBER ', 335, 365, 12 ) /)
+  type ( MONTH_T ),dimension(12),target :: YEAR_INFO = (/ &
+      MONTH_T( 'JAN','JANUARY  ',   1,  31, 1 ), &
+      MONTH_T( 'FEB','FEBRUARY ',  32,  59, 2 ), &
+      MONTH_T( 'MAR','MARCH    ',  60,  90, 3 ), &
+      MONTH_T( 'APR','APRIL    ',  91, 120, 4 ), &
+      MONTH_T( 'MAY','MAY      ', 121, 151, 5 ), &
+      MONTH_T( 'JUN','JUNE     ', 152, 181, 6 ), &
+      MONTH_T( 'JUL','JULY     ', 182, 212, 7 ), &
+      MONTH_T( 'AUG','AUGUST   ', 213, 243, 8 ), &
+      MONTH_T( 'SEP','SEPTEMBER', 244, 273, 9 ), &
+      MONTH_T( 'OCT','OCTOBER  ', 274, 304, 10 ), &
+      MONTH_T( 'NOV','NOVEMBER ', 305, 334, 11 ), &
+      MONTH_T( 'DEC','DECEMBER ', 335, 365, 12 ) /)
 
   ! concentration conversion factors represent the values that one
   ! needs to multiply by in order to yield units of mg/L
@@ -624,7 +623,7 @@ subroutine LookupMonth(iMonth, iDay, iYear,iDayOfYear, &
   character (len=3),intent(out) :: sMonthName
   logical (kind=T_LOGICAL),intent(out) :: lMonthEnd
   ! [ LOCALS ]
-  type ( T_MONTH ),pointer :: mo
+  type ( MONTH_T ),pointer :: mo
   integer (kind=T_INT) :: iEpochMonth = 1
   integer (kind=T_INT) :: iEpochDay = 1
   integer (kind=T_INT) :: iEpochJulianDay

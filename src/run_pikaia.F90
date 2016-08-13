@@ -141,7 +141,7 @@ subroutine pikaia_driver(pConfig, pBestConfig)
 
   pConfig%rCombinedRMSE = sqrt(pConfig%rCombinedMSE)
 
-  r_edf = rf_effective_degrees_freedom(pConfig,pStrata)
+  r_edf = calculate_effective_degrees_of_freedom(pConfig,pStrata)
   pConfig%rCombinedLoadCI = rf_compute_CI(r_edf, pConfig%rCombinedMSE)
 
   pConfig%rCombinedLoadAnnualized = pConfig%rCombinedLoad * &
@@ -232,7 +232,7 @@ subroutine pikaia_driver(pConfig, pBestConfig)
     ! run Beale one last time with final solution from Pikaia
 !    rTempVal = evaluate_fitness_function(iNumBounds,x)
 
-!    r_edf = rf_effective_degrees_freedom(pConfig,pStrata)
+!    r_edf = calculate_effective_degrees_of_freedom(pConfig,pStrata)
 
 !    pConfig%rCombinedLoadCI = rf_compute_CI(r_edf, pConfig%rCombinedMSE)
 

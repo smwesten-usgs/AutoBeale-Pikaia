@@ -1,3 +1,8 @@
+!> @file
+!! Contains a single module, @ref beale, which contains functions and
+!! subroutines needed to apply the Beale Ratio Estimator to a given stratum
+!! (subset) of the complete dataset.
+
 module beale
 
   use types
@@ -6,14 +11,16 @@ module beale
 
   contains
 
-subroutine calculate_Beale_load(pFlow,pConc,pStratum, pConfig)
+!> Calculate the Beale Ratio Estimator for a specific stratum or subset of the data.
+!!
+!!
+
+subroutine calculate_Beale_load(pFlow, pConc, pStratum, pConfig)
 
   type (FLOW_T), dimension(:), pointer :: pFlow
   type (CONC_T), dimension(:), pointer :: pConc
-  type (STRATUM_STATS_T), pointer :: pStratum
-  type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
-                                      ! program options, flags, and other settings
-
+  type (STRATUM_STATS_T), pointer      :: pStratum
+  type (CONFIG_T), pointer             :: pConfig
 
   real (kind=T_REAL) :: rSum = rZERO
   real (kind=T_REAL) :: rQ_bar = rZERO
@@ -168,7 +175,12 @@ subroutine calculate_Beale_load(pFlow,pConc,pStratum, pConfig)
 
 end subroutine calculate_Beale_load
 
-!-----------------------------------------------------------------------
+!--------------------------------------------------------------------------------------------------
+
+!> Calculate the various variance terms needed for calculating the Beale Ratio Estimator.
+!!
+!! @param pConc pointer to array of CONC_T type containing entire concentration dataset.
+!! @param pStratum pointer of STRATUM_STATS_T type holding stratum boundaries and statistics.
 
 subroutine calculate_variance(pConc,pStratum)
 
@@ -474,14 +486,14 @@ end function get_flow
 
 !-----------------------------------------------------------------------
 
-subroutine bealecalc_orig(pConfig, pFlow, pConc, pStratum)
+subroutine bealecalc_orig(pConfig, pFlow, pConc, pStrata)
 
       type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                           ! program options, flags, and other settings
 
       type (FLOW_T), dimension(:), pointer :: pFlow
       type (CONC_T), dimension(:), pointer :: pConc
-      type (STRATUM_STATS_T),dimension(:), pointer :: pStratum
+      type (STRATUM_STATS_T),dimension(:), pointer :: pStrata
 
       ! this routine lifted almost verbatim from Dr. Peter Richard's
       ! AutoBeale code
@@ -529,8 +541,8 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStratum)
       flowmu=0.0d0
 
       do l=1,ndays
-        if (pFlow(l)%iJulianDay<=pStratum(j)%iEndDate .and. &
-            pFlow(l)%iJulianDay>=pStratum(j)%iStartDate) then
+        if (pFlow(l)%iJulianDay<=pStrata(j)%iEndDate .and. &
+            pFlow(l)%iJulianDay>=pStrata(j)%iStartDate) then
           nf(j)=nf(j)+1 ! # daily flows in strata
           flowmu=flowmu+pFlow(l)%rFlow
           ! search for matching sample record
@@ -566,8 +578,8 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStratum)
         flowmu, avflow, avload
 
       do l=1,ndays        !now calculate the third order terms
-        if (pFlow(l)%iJulianDay<=pStratum(j)%iEndDate .and. &
-            pFlow(l)%iJulianDay>=pStratum(j)%iStartDate)then
+        if (pFlow(l)%iJulianDay<=pStrata(j)%iEndDate .and. &
+            pFlow(l)%iJulianDay>=pStrata(j)%iStartDate)then
           do i=1,SIZE(pConc%rFlow)
             if(pFlow(l)%iJulianDay == pConc(i)%iJulianDay) then
               sumx3=sumx3 + (pConc(i)%rFlow-avflow)**3
@@ -651,7 +663,7 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStratum)
       do i=1,pConfig%iMaxNumStrata
         tmp1=r(i)-1.0_T_REAL
 
-        rf = REAL(pStratum(i)%iNumDays,kind=T_REAL)
+        rf = REAL(pStrata(i)%iNumDays,kind=T_REAL)
         rn = REAL(pConfig%iTotNumDays,kind=T_REAL)
 
         cumfl=cumfl+flowes(i)*(rf/rn)        ! eqn. H in Baum (1982)
@@ -703,7 +715,7 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStratum)
            rmse(1)*0.133225_T_REAL*1.e+06,r(1)-1.,ci*1000.
       end if
 
-11      format (a,2f16.4,f10.3,f16.4)
+11      format (a,2f16.2,f10.3,f16.2)
 
 
 300   return
@@ -712,7 +724,7 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStratum)
 
 !-----------------------------------------------------------------------
 
-function rf_effective_degrees_freedom(pConfig,pStratum)  result(r_edf)
+function calculate_effective_degrees_of_freedom(pConfig,pStratum)  result(r_edf)
 
   type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                       ! program options, flags, and other settings
@@ -731,7 +743,7 @@ function rf_effective_degrees_freedom(pConfig,pStratum)  result(r_edf)
 
 
   call Assert(LOGICAL(pConfig%iMaxNumStrata>0,kind=T_LOGICAL), &
-    'Function rf_effective_degrees_freedom called with df < 1')
+    'Function calculate_effective_degrees_of_freedom called with df < 1')
 
   if(pConfig%iMaxNumStrata==1) then
 
@@ -778,7 +790,7 @@ function rf_effective_degrees_freedom(pConfig,pStratum)  result(r_edf)
 
   return
 
-end function rf_effective_degrees_freedom
+end function calculate_effective_degrees_of_freedom
 
 !----------------------------------------------------------------------
 

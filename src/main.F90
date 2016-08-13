@@ -36,10 +36,6 @@ program main
   call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
      "Could not allocate memory for copy of program control data structure")
 
-  ALLOCATE (pTestConfig, STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-    "Could not allocate memory for copy of program control data structure")
-
   iCommandCount = COMMAND_ARGUMENT_COUNT()
 
   if(iCommandCount < 4) then
