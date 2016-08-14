@@ -90,7 +90,7 @@ end subroutine find_initial_strata
 
 !----------------------------------------------------------------------
 
-subroutine assemble_strata(pConfig,pFlow,pConc,pStratum,iStrataNum,lValid)
+subroutine check_stratum_validity(pConfig,pFlow,pConc,pStratum,iStrataNum,lValid)
 
   ! input the parameters required to create a stratum boundary.
 
@@ -106,7 +106,7 @@ subroutine assemble_strata(pConfig,pFlow,pConc,pStratum,iStrataNum,lValid)
   lValid = lTRUE
 
   call Assert(LOGICAL(iStrataNum<=pConfig%iMaxNumStrata,kind=T_LOGICAL), &
-    "Too many strata specified in subroutine assemble_strata")
+    "Too many strata specified in subroutine check_stratum_validity")
 
   pStratum%iStartDate = pConfig%iStrataBound(iStrataNum - 1) + 1
   pStratum%iEndDate = pConfig%iStrataBound(iStrataNum)
@@ -122,7 +122,7 @@ subroutine assemble_strata(pConfig,pFlow,pConc,pStratum,iStrataNum,lValid)
     lValid = lFALSE
   end if
 
-end subroutine assemble_strata
+end subroutine check_stratum_validity
 
 !--------------------------------------------------------------------------------------------------
 

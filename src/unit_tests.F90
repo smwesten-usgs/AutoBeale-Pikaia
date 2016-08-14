@@ -83,7 +83,7 @@ program unit_tests
 
   pTestStrata(3)%iStartDate = julian_day( iYear=1997, iMonth=5, iDay=27 )
   pTestStrata(3)%iEndDate   = julian_day( iYear=1997, iMonth=12, iDay=31 )
-  pTestStrata(1)%iNumDays   = pTestStrata(3)%iEndDate - pTestStrata(3)%iStartDate + 1
+  pTestStrata(3)%iNumDays   = pTestStrata(3)%iEndDate - pTestStrata(3)%iStartDate + 1
 
   ! assemble FLOW dataset
   test_flow_dates(1) = julian_day( iYear=1997, iMonth=1, iDay=1 )

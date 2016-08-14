@@ -74,7 +74,7 @@ function evaluate_fitness_function(iNumBounds,x)  result(rValue)
   ! loop over all strata members
   do i=1,iNumBounds+1
     pStratum=>pStrata(i)
-    call assemble_strata(pConfig,pFlow,pConc,pStratum,i,lValid)
+    call check_stratum_validity(pConfig,pFlow,pConc,pStratum,i,lValid)
 
     call gregorian_date(pStratum%iStartDate, iB_Year, iB_Month, iB_Day)
     call gregorian_date(pStratum%iEndDate, iE_Year, iE_Month, iE_Day)
