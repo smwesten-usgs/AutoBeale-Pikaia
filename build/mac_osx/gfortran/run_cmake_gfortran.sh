@@ -21,12 +21,12 @@ export INSTALL_PREFIX=/usr/local/bin
 
 # define other variables for use in the CMakeList.txt file
 # options are "Release" or "Debug"
-export BUILD_TYPE="Release"
+export BUILD_TYPE="Debug"
 # options are "x86" (32-bit) or "x64" (64-bit)
 export OS="mac_osx"
 
 # define platform and compiler specific compilation flags
-export CMAKE_Fortran_FLAGS_DEBUG="-O0 -g -ggdb -cpp -fcheck=all -fexceptions -ffree-line-length-none -static -static-libgcc -static-libgfortran"
+export CMAKE_Fortran_FLAGS_DEBUG="-O0 -g -cpp -fcheck=all -fexceptions -ffree-line-length-none"
 #set CMAKE_Fortran_FLAGS_RELEASE="-O2 -mtune=native -floop-parallelize-all -flto -ffree-line-length-none -static-libgcc -static-libgfortran"
 export CMAKE_Fortran_FLAGS_RELEASE="-O3 -cpp -mtune=native -ffree-line-length-none"
 
@@ -54,4 +54,3 @@ cmake ../../.. -G "Unix Makefiles" \
 -DCMAKE_INSTALL_PREFIX:PATH="$INSTALL_PREFIX " \
 -DCMAKE_Fortran_FLAGS_DEBUG="$CMAKE_Fortran_FLAGS_DEBUG " \
 -DCMAKE_Fortran_FLAGS_RELEASE="$CMAKE_Fortran_FLAGS_RELEASE"
-

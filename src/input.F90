@@ -175,11 +175,6 @@ subroutine read_data(pConfig, pFlow, pConc)
     iE_Month,iE_Day,iE_Year
   pConfig%sEndDate = trim(sBuf)
 
-  pConfig%rTotalFlow=SUM(pFlow%rFlow) * 86400_T_REAL    ! cubic meters of water
-  pConfig%rTotalFlowAnnualized =  pConfig%rTotalFlow * 365_T_REAL &
-      / REAL(pConfig%iTotNumDays,kind=T_REAL)
-
-
 ! read the concentrations for a given load calculation, converting the units as you go
 ! determine the maximum concentration for scaling purposes in the GUI
 

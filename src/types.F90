@@ -2,6 +2,7 @@ module types
 
   !	Common declarations for the BEALE program.
 
+  use iso_fortran_env, only : OUTPUT_UNIT
   implicit none
 
   ! Define the sizes of base types used in the model
@@ -52,6 +53,9 @@ module types
   integer (kind=T_INT), parameter :: iCONC_FILE_FORMAT_ORIGINAL = 0
   integer (kind=T_INT), parameter :: iCONC_FILE_FORMAT_USGS = 1
 
+  integer (kind=T_INT), parameter :: MINIMIZE_MEAN_SQUARED_ERROR = 0
+  integer (kind=T_INT), parameter :: MINIMIZE_CONFIDENCE_INTERVAL = 1
+
   type, public :: UNIT_CONVERSION_T
     real (kind=T_REAL) :: rConversionFactor
     character (len=256) :: sUnits
@@ -92,10 +96,11 @@ module types
 
   type, public :: CONFIG_T
     logical (kind=T_LOGICAL) :: lJackknife = lFALSE
-    integer (kind=T_INT) :: iStartDate
-    integer (kind=T_INT) :: iEndDate
-    character (len=20) :: sStartDate
-    character (len=20) :: sEndDate
+    integer (kind=T_INT)     :: iMinimizationStatistic = MINIMIZE_MEAN_SQUARED_ERROR
+    integer (kind=T_INT)     :: iStartDate
+    integer (kind=T_INT)     :: iEndDate
+    character (len=20)       :: sStartDate
+    character (len=20)       :: sEndDate
 
     character (len=256) :: sBaseDirName = ""
     character (len=256) :: sFlowDirName = ""
@@ -119,27 +124,27 @@ module types
     integer (kind=T_INT) :: iMaxEvalStrata = 11
     integer (kind=T_INT) :: iTotNumDays = 0
 
-    real (kind=T_REAL) :: rTotalFlow
-    real (kind=T_REAL) :: rCombinedLoad
-    real (kind=T_REAL) :: rCombinedLoadAnnualized
-        real (kind=T_REAL) :: rTotalFlowAnnualized
-    real (kind=T_REAL) :: rCombinedMSE
-    real (kind=T_REAL) :: rCombinedRMSE
-    real (kind=T_REAL) :: rCombinedLoadCI = 1.E+27
-    real (kind=T_REAL) :: rCombinedLoadAnnualizedCI = 1.E+27
+    real (kind=T_REAL) :: rTotalFlow                 = 0.
+    real (kind=T_REAL) :: rCombinedLoad              = 0.
+    real (kind=T_REAL) :: rCombinedLoadAnnualized    = 0.
+    real (kind=T_REAL) :: rTotalFlowAnnualized       = 0.
+    real (kind=T_REAL) :: rCombinedMSE               = HUGE( 0. )
+    real (kind=T_REAL) :: rCombinedRMSE              = HUGE( 0. )
+    real (kind=T_REAL) :: rCombinedLoadCI            = HUGE( 0. )
+    real (kind=T_REAL) :: rCombinedLoadAnnualizedCI  = HUGE( 0. )
 
-    real (kind=T_REAL) :: rCombinedDailyLoad
-    real (kind=T_REAL) :: rCombinedDailyMSE = 1.E+27
-    real (kind=T_REAL) :: rCombinedDailyRMSE = 1.E+27
+    real (kind=T_REAL) :: rCombinedDailyLoad         = HUGE( 0. )
+    real (kind=T_REAL) :: rCombinedDailyMSE          = HUGE( 0. )
+    real (kind=T_REAL) :: rCombinedDailyRMSE         = HUGE( 0. )
 
-    real (kind=T_REAL) :: rJackCombinedLoadAnnualized
-    real (kind=T_REAL) :: rJackCombinedLoadAnnualizedCI = 1.E+27
+    real (kind=T_REAL) :: rJackCombinedLoadAnnualized   = HUGE( 0. )
+    real (kind=T_REAL) :: rJackCombinedLoadAnnualizedCI = HUGE( 0. )
 
-    real (kind=T_REAL) :: rCombinedEffectiveDegreesFreedom
+    real (kind=T_REAL) :: rCombinedEffectiveDegreesFreedom  = HUGE( 0. )
 
-    integer (kind=T_INT) :: iCountUniqueSamples
+    integer (kind=T_INT) :: iCountUniqueSamples  = 0
 
-    integer (kind=T_INT) :: iFuncCallNum
+    integer (kind=T_INT) :: iFuncCallNum         = 0
 
     integer (kind=T_INT), dimension(0:iMAX_STRATA) :: iStrataBound
     real (kind=T_REAL), dimension(0:iMAX_STRATA) :: rStratumCorrectedLoad

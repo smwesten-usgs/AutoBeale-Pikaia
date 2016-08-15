@@ -1,5 +1,9 @@
 module strata
 
+  use beale, only  : calculate_effective_degrees_of_freedom,     &
+                     calculate_confidence_interval,              &
+                     calculate_Beale_load
+
   use types
   use units
   implicit none
@@ -108,8 +112,8 @@ subroutine check_stratum_validity(pConfig,pFlow,pConc,pStratum,iStrataNum,lValid
   call Assert(LOGICAL(iStrataNum<=pConfig%iMaxNumStrata,kind=T_LOGICAL), &
     "Too many strata specified in subroutine check_stratum_validity")
 
-  pStratum%iStartDate = pConfig%iStrataBound(iStrataNum - 1) + 1
-  pStratum%iEndDate = pConfig%iStrataBound(iStrataNum)
+!  pStratum%iStartDate = pConfig%iStrataBound(iStrataNum - 1) + 1
+!  pStratum%iEndDate = pConfig%iStrataBound(iStrataNum)
 
   ! count of SAMPLES taken within current date range
   pStratum%iNumSamples = COUNT(pConc%iJulianDay >= pStratum%iStartDate       &
@@ -126,45 +130,142 @@ end subroutine check_stratum_validity
 
 !--------------------------------------------------------------------------------------------------
 
-subroutine reset_stratum_stats(pStratum)
+subroutine calculate_and_combine_stratum_loads( pConfig, pStrata, pFlow, pConc, iMaxNumStrata )
 
-  type (STRATUM_STATS_T), dimension(:), pointer :: pStratum
+  type (CONFIG_T), pointer                                :: pConfig
+  type (STRATUM_STATS_T), dimension(:), pointer           :: pStrata
+  type (FLOW_T), dimension(:), pointer                    :: pFlow
+  type (CONC_T), dimension(:), pointer                    :: pConc
+  integer (kind=T_INT), intent(in)                        :: iMaxNumStrata
 
-  pStratum%iStartDate = 0
-  pStratum%iEndDate = 0
+  ! [ LOCALS ]
+  type (STRATUM_STATS_T), pointer     :: pStratum
+  logical (kind=T_LOGICAL)            :: lValid
+  integer (kind=T_INT)                :: indx
+  integer (kind=T_INT)                :: iB_Day, iB_Month, iB_Year
+  integer (kind=T_INT)                :: iE_Day, iE_Month, iE_Year
+  real (kind=T_REAL)                  :: r_edf
+  character (len=256)                 :: sBuf
 
-  pStratum%sStartDate = "NONE"
-  pStratum%sEndDate = "NONE"
+  pConfig%rCombinedLoad = rZERO
+  pConfig%rCombinedMSE  = rZERO
+  pConfig%rCombinedRMSE = rZERO
 
-  pStratum%iNumDays = 0
-  pStratum%iNumSamples = 0
-  pStratum%rMeanFlow = 0
+  ! loop over all strata members
+  do indx=1, iMaxNumStrata
+    pStratum => pStrata(indx)
+    call check_stratum_validity(pConfig, pFlow, pConc, pStratum, indx, lValid)
+    call gregorian_date(pStratum%iStartDate, iB_Year, iB_Month, iB_Day)
+    call gregorian_date(pStratum%iEndDate, iE_Year, iE_Month, iE_Day)
 
-  pStratum%rMeanSampleFlow = rZERO
-  pStratum%rMeanSampleConc = rZERO
-  pStratum%rMeanSampleLoad = rZERO
+    write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") iB_Month,iB_Day,iB_Year
+    pStratum%sStartDate = trim(sBuf)
+    write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") iE_Month,iE_Day,iE_Year
+    pStratum%sEndDate = trim(sBuf)
 
-  pStratum%rDailyBiasedLoadEstimate = rZERO
-  pStratum%rDailyLoadBiasCorrection = rZERO
-  pStratum%rDailyCorrectedLoadEstimate = rZERO
-  pStratum%rDailyMeanSquareError = rZERO
-  pStratum%rDailySumOfSquareError = rZERO
-  pStratum%rDailyLoadCI = rZERO
+    if(lValid) then
 
-  pStratum%rStratumCorrectedLoad = rZERO
-  pStratum%rStratumMeanSquareError = rZERO
-  pStratum%rStratumLoadCI = rZERO
+      ! date values are legal and at least 2 samples exist for the
+      ! current stratum...  O.K. to call calculate_Beale_load
 
-  pStratum%rS_qq = rZERO
-  pStratum%rS_lq = rZERO
-  pStratum%rS_ll = rZERO
-  pStratum%rS_q2l = rZERO
-  pStratum%rS_ql2 = rZERO
-  pStratum%rS_q3 = rZERO
+      call calculate_Beale_load(pFlow,pConc,pStratum, pConfig)
 
-  return
+      pConfig%rCombinedLoad = pConfig%rCombinedLoad + pStrata(indx)%rStratumCorrectedLoad
 
-end subroutine reset_stratum_stats
+      ! Equation M, Baum (1982)
+      ! MSE = MSE_d * N^2 = sum(N_h^2 * MSE_hd)
+      pConfig%rCombinedMSE = pConfig%rCombinedMSE + pStrata(indx)%rStratumMeanSquareError
+
+    else
+
+      ! date value is illegal (end date comes before start date)
+      ! or less than 2 samples fall within the current date range for the
+      ! stratum...
+
+      ! set statistics to default error values
+      pStrata%rDailyMeanSquareError = -99999.
+      pStrata%rDailyCorrectedLoadEstimate = -99999.
+      pStrata%rStratumCorrectedLoad = -99999.
+      pStrata%rStratumMeanSquareError = -99999.
+      pStrata%rDailyBiasedLoadEstimate = -99999.
+      pStrata%rDailyLoadBiasCorrection = -99999.
+      pStrata%rS_qq = rZERO
+      pStrata%rS_lq = rZERO
+      pStrata%rS_ll = rZERO
+      pStrata%rS_q2l = rZERO
+      pStrata%rS_ql2 = rZERO
+      pStrata%rS_q3 = rZERO
+      exit
+
+    end if
+
+  end do    ! loop over all strata members
+
+  if( any( pStrata(1:pConfig%iMaxNumStrata )%rStratumCorrectedLoad < 0. ) ) then
+
+    pConfig%rCombinedLoad = -HUGE( rZERO )
+    pConfig%rCombinedMSE = -HUGE( rZERO )
+    pConfig%rCombinedRMSE = -HUGE( rZERO )
+    pConfig%rCombinedLoadCI = -HUGE( rZERO )
+    pConfig%rCombinedLoadAnnualized = -HUGE( rZERO )
+    pConfig%rCombinedLoadAnnualizedCI = -HUGE( rZERO )
+
+  else
+
+    pConfig%rCombinedRMSE = sqrt(pConfig%rCombinedMSE)
+    r_edf = calculate_effective_degrees_of_freedom(pConfig,pStrata)
+
+    pConfig%rCombinedLoadCI = calculate_confidence_interval(r_edf, pConfig%rCombinedMSE)
+
+    pConfig%rCombinedLoadAnnualized = pConfig%rCombinedLoad * 365. / REAL(pConfig%iTotNumDays,kind=T_REAL)
+
+    pConfig%rCombinedLoadAnnualizedCI = calculate_confidence_interval(r_edf, &
+       pConfig%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, &
+         kind=T_REAL))
+
+  end if
+
+end subroutine calculate_and_combine_stratum_loads
+
+!--------------------------------------------------------------------------------------------------
+
+subroutine reset_strata_stats(pStrata)
+
+  type (STRATUM_STATS_T), dimension(:), pointer :: pStrata
+
+  pStrata%iStartDate = 0
+  pStrata%iEndDate = 0
+
+  pStrata%sStartDate = "NONE"
+  pStrata%sEndDate = "NONE"
+
+  pStrata%iNumDays = 0
+  pStrata%iNumSamples = 0
+  pStrata%rMeanFlow = 0
+
+  pStrata%rMeanSampleFlow = rZERO
+  pStrata%rMeanSampleConc = rZERO
+  pStrata%rMeanSampleLoad = rZERO
+
+  pStrata%rDailyBiasedLoadEstimate = rZERO
+  pStrata%rDailyLoadBiasCorrection = rZERO
+  pStrata%rDailyCorrectedLoadEstimate = rZERO
+  pStrata%rDailyMeanSquareError = rZERO
+  pStrata%rDailySumOfSquareError = rZERO
+  pStrata%rDailyLoadCI = rZERO
+
+  pStrata%rStratumCorrectedLoad = rZERO
+  pStrata%rStratumMeanSquareError = rZERO
+  pStrata%rStratumLoadCI = rZERO
+
+  pStrata%rS_qq = rZERO
+  pStrata%rS_lq = rZERO
+  pStrata%rS_ll = rZERO
+  pStrata%rS_q2l = rZERO
+  pStrata%rS_ql2 = rZERO
+  pStrata%rS_q3 = rZERO
+
+end subroutine reset_strata_stats
 
 !--------------------------------------------------------------------------------------------------
 

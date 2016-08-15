@@ -12,8 +12,12 @@ module run_pikaia
 
 subroutine pikaia_driver(pConfig, pBestConfig)
 
+  type (CONFIG_T), pointer :: pConfig,pBestConfig
+                                   ! pointer to data structure that contains
+                                   ! program options, flags, and other settings
 
-  integer*4 ios,wh, i, j, iNumStrata, iNumBounds, k, ii
+  ! [ LOCALS ]
+  integer*4 ios,wh, i, j, iNumStrata, iCurrentStrata, iNumBounds, k, ii
   integer*4 iStat
 
   character*260 outfilename
@@ -21,16 +25,10 @@ subroutine pikaia_driver(pConfig, pBestConfig)
   character*260 path
   character*260 name
 
-  character (len=256) :: sRecord, sItem, sBuf, sStartDate, sEndDate
-  character (len=1) :: sTab = CHAR(9)
-
-
-  type (CONFIG_T), pointer :: pConfig,pBestConfig
-                                   ! pointer to data structure that contains
-                                   ! program options, flags, and other settings
-
-  integer (kind=T_INT) :: iMonth,iDay,iYear
-  integer (kind=T_INT) :: iStartDate, iEndDate
+  character (len=256)        :: sRecord, sItem, sBuf, sStartDate, sEndDate
+  character (len=1)          :: sTab = CHAR(9)
+  integer (kind=T_INT)       :: iMonth,iDay,iYear
+  integer (kind=T_INT)       :: iStartDate, iEndDate
 
   INTEGER             :: seed, STATUS, iNumAttempts
   REAL (kind=T_REAL), dimension(12) :: ctrl(12)
@@ -120,7 +118,7 @@ subroutine pikaia_driver(pConfig, pBestConfig)
   CALL rninit(seed)
 
   ! first do the UNSTRATIFIED case...
-  iNumStrata = 1
+  iCurrentStrata = 1
   pConfig%iMaxNumStrata = 1
   pConfig%iStrataBound(0) = MINVAL(pFlow%iJulianDay)
   pConfig%iStrataBound(pConfig%iMaxNumStrata) = MAXVAL(pFlow%iJulianDay)
@@ -136,20 +134,18 @@ subroutine pikaia_driver(pConfig, pBestConfig)
 
   call calculate_Beale_load(pFlow,pConc,pStratum, pConfig)
 
-  pConfig%rCombinedLoad = pStrata(1)%rStratumCorrectedLoad
-  pConfig%rCombinedMSE = pStrata(1)%rStratumMeanSquareError
+  pConfig%rCombinedLoad = pStrata( iCurrentStrata )%rStratumCorrectedLoad
+  pConfig%rCombinedMSE = pStrata( iCurrentStrata )%rStratumMeanSquareError
 
   pConfig%rCombinedRMSE = sqrt(pConfig%rCombinedMSE)
 
-  r_edf = calculate_effective_degrees_of_freedom(pConfig,pStrata)
-  pConfig%rCombinedLoadCI = rf_compute_CI(r_edf, pConfig%rCombinedMSE)
+  r_edf = calculate_effective_degrees_of_freedom( pConfig, pStrata )
+  pConfig%rCombinedLoadCI = calculate_confidence_interval(r_edf, pConfig%rCombinedMSE )
 
-  pConfig%rCombinedLoadAnnualized = pConfig%rCombinedLoad * &
-     365.25_T_REAL / REAL(pConfig%iTotNumDays,kind=T_REAL)
+  pConfig%rCombinedLoadAnnualized = pConfig%rCombinedLoad * 365.25_T_REAL / REAL(pConfig%iTotNumDays,kind=T_REAL)
 
-    pConfig%rCombinedLoadAnnualizedCI = rf_compute_CI(r_edf, &
-       pConfig%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, &
-         kind=T_REAL))
+    pConfig%rCombinedLoadAnnualizedCI = calculate_confidence_interval(r_edf, &
+       pConfig%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, kind=T_REAL))
 
   sBuf = trim(pConc(1)%sTribName)//"_"//trim(pConc(1)%sConstituentName)
 
@@ -160,18 +156,17 @@ subroutine pikaia_driver(pConfig, pBestConfig)
     pConfig%rCombinedLoad, sTab, pConfig%rCombinedRMSE, sTab, &
     pConfig%rCombinedEffectiveDegreesFreedom, sTab, &
     pConfig%rCombinedLoadCI, sTab, &
-    (pStrata(k)%sStartDate,sTab,pStrata(k)%sEndDate,sTab, &
-      k=1,iNumStrata)
+    pStrata(iCurrentStrata)%sStartDate,sTab,pStrata(iCurrentStrata)%sEndDate,sTab
 
   call save_best_config(pBestConfig,pConfig)
 
   if(.not. pConfig%lJackknife) then
 
-    call print_stratum_stats(pConfig, pStratum, pFlow, pConc, 1, LU_STD_OUT)
-    call print_strata_summary(pConfig, LU_STD_OUT)
+    call print_stratum_stats(pConfig, pStratum, pFlow, pConc, iCurrentStrata, LU_STD_OUT)
+    call print_strata_summary(pConfig, pStrata, LU_STD_OUT)
 
-    call print_stratum_stats(pConfig,pStratum, pFlow, pConc, 1, LU_LONG_RPT)
-    call print_strata_summary(pConfig, LU_LONG_RPT)
+    call print_stratum_stats(pConfig,pStratum, pFlow, pConc, iCurrentStrata, LU_LONG_RPT)
+    call print_strata_summary(pConfig, pStrata, LU_LONG_RPT)
 
   end if
 
@@ -179,27 +174,28 @@ subroutine pikaia_driver(pConfig, pBestConfig)
   !
   ! Now begin calculations *with* stratification
   !
-  do iNumBounds=1,pConfig%iMaxEvalStrata
+  do iCurrentStrata=2,pConfig%iMaxEvalStrata
+
+    iNumStrata = iCurrentStrata
+    iNumBounds = iNumStrata - 1
+    pConfig%iMaxNumStrata = iCurrentStrata
+
+    ! if the strata looks like this:
+    !  s1    |            s2         |           s3
+    ! we have 3 strata and 2 boundaries between them
 
     pConfig%iFuncCallNum = 0
 
     ctrl(1) = PIKAIA_MAX_POPULATION_SIZE    ! # individuals
     ctrl(2) = PIKAIA_MAX_GENERATION_LENGTH  ! # generations
 
-    iNumStrata = iNumBounds + 1
-    pConfig%iMaxNumStrata = iNumStrata
-
-    ! iNumBounds represents the number of BOUNDARIES between strata
-    ! therefore, the number of strata is iNumBounds+1
-    !
-
     ! record absolute start and end date values
     pConfig%iStrataBound(0) = MINVAL(pFlow%iJulianDay) - 1
     pConfig%iStrataBound(pConfig%iMaxNumStrata) = MAXVAL(pFlow%iJulianDay)
 
     if(iNumStrata > ( pConfig%iCountUniqueSamples - 1 ) /2 ) then
-      write(6,FMT="('Not enough data to support ',i3,' strata...')") iNumStrata
-      cycle
+      write(6,FMT="('Not enough data to support ',i3,' or more strata...')") iNumStrata
+      exit
     end if
 
     iNumAttempts = 1
@@ -207,11 +203,13 @@ subroutine pikaia_driver(pConfig, pBestConfig)
     do
       if ( iNumAttempts > PIKAIA_MAX_NUM_OPTIMIZATION_ATTEMPTS ) exit
 
-      call reset_config(pConfig)
+      ! the call below resets the combined load statistics to zero; the boundaries and
+      ! strata definitions are retained
+      call reset_configuration_stats(pConfig)
 
       call perform_pikaia_optimization( evaluate_fitness_function, iNumBounds, ctrl, x, fb, status )
 
-      if(fb<0.) then
+      if ( fb < 0. ) then
 
         iNumAttempts = iNumAttempts + 1
         ctrl(1) = ctrl(1) + 12       ! try again, with larger population
@@ -228,20 +226,6 @@ subroutine pikaia_driver(pConfig, pBestConfig)
       end if
 
     end do
-
-    ! run Beale one last time with final solution from Pikaia
-!    rTempVal = evaluate_fitness_function(iNumBounds,x)
-
-!    r_edf = calculate_effective_degrees_of_freedom(pConfig,pStrata)
-
-!    pConfig%rCombinedLoadCI = rf_compute_CI(r_edf, pConfig%rCombinedMSE)
-
-!    pConfig%rCombinedLoadAnnualized = pConfig%rCombinedLoad * &
-!      365. / REAL(pConfig%iTotNumDays,kind=T_REAL)
-
-!    pConfig%rCombinedLoadAnnualizedCI = rf_compute_CI(r_edf, &
-!       pConfig%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, &
-!         kind=T_REAL))
 
     sBuf = trim(pConc(1)%sTribName)//"_"//trim(pConc(1)%sConstituentName)
 
@@ -276,8 +260,8 @@ subroutine pikaia_driver(pConfig, pBestConfig)
         call print_stratum_stats(pConfig,pStratum, pFlow, pConc, j, LU_LONG_RPT)
       end do
 
-      call print_strata_summary(pConfig, LU_STD_OUT)
-      call print_strata_summary(pConfig, LU_LONG_RPT)
+      call print_strata_summary(pConfig, pStrata, LU_STD_OUT)
+      call print_strata_summary(pConfig, pStrata, LU_LONG_RPT)
 
       write(LU_STD_OUT,FMT=*) " "
 
@@ -303,8 +287,8 @@ subroutine pikaia_driver(pConfig, pBestConfig)
     write(LU_STD_OUT,*) repeat("=",80)
     write(LU_LONG_RPT,*) repeat("=",80)
 
-    call print_strata_summary(pBestConfig, LU_STD_OUT)
-    call print_strata_summary(pBestConfig, LU_LONG_RPT)
+    call print_strata_summary(pBestConfig, pStrata, LU_STD_OUT)
+    call print_strata_summary(pBestConfig, pStrata, LU_LONG_RPT)
 
   end if
 

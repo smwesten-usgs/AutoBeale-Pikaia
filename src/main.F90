@@ -83,7 +83,7 @@ program main
     elseif(trim(sBuf)=="-max_strata") then
       call GET_COMMAND_ARGUMENT(i+1,sBuf)
       read(sBuf,FMT=*) iValue
-      pConfig%iMaxEvalStrata = iValue - 1
+      pConfig%iMaxEvalStrata = iValue
 
     elseif(trim(sBuf)=="-basedir") then
       call GET_COMMAND_ARGUMENT(i+1,sBuf)
@@ -102,10 +102,16 @@ program main
       read(sBuf,FMT=*) pConfig%sResultsDirName
 
     elseif(trim(sBuf)=="-jackknife") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
-      if(trim(sBuf)=="ON") then
-        pConfig%lJackknife=lTRUE
-      endif
+      pConfig%lJackknife=lTRUE
+
+    elseif(trim(sBuf)=="-minimize_ci") then
+      pConfig%iMinimizationStatistic = MINIMIZE_CONFIDENCE_INTERVAL
+
+    elseif(trim(sBuf)=="-minimize_mse") then
+      pConfig%iMinimizationStatistic = MINIMIZE_MEAN_SQUARED_ERROR
+
+    elseif(trim(sBuf)=="-jackknife") then
+      pConfig%lJackknife=lTRUE
 
     elseif(trim(sBuf)=="-load_units") then
       call GET_COMMAND_ARGUMENT(i+1,sBuf)
@@ -476,8 +482,8 @@ program main
           iBYear,iBMonth,iBDay,sTab,iEYear,iEMonth,iEDay,sTab, &
           trim(sf_L_units(pConfig,pJackknife(j)%rEstimate))
 
-      call reset_config(pConfig)
-      call reset_config(pBestConfig)
+      call reset_configuration_stats(pConfig)
+      call reset_configuration_stats(pBestConfig)
 
     end do
 
@@ -496,12 +502,12 @@ program main
     rSE_jack = sqrt( (REAL(iNumIterations) - 1_T_REAL ) *rSum1 &
                 / REAL(iNumIterations) )
 
-    rSE_CI = rf_compute_CI(REAL(iNumIterations,kind=T_REAL)-1., &
+    rSE_CI = calculate_confidence_interval(REAL(iNumIterations,kind=T_REAL)-1., &
       (REAL(iNumIterations) - 1_T_REAL ) * rSum1 / REAL(iNumIterations))
 
     ! now run one more time in non-Jackknife mode
-    call reset_config(pConfig)
-    call reset_config(pBestConfig)
+    call reset_configuration_stats(pConfig)
+    call reset_configuration_stats(pBestConfig)
     pConc%lInclude = lTRUE
     pConfig%lJackknife=lFALSE
     pConfig%iNumConcPoints = size(pConc)
@@ -543,8 +549,8 @@ program main
   call print_short_report(pBestConfig,pConc)
   call write_R_script(pConfig,pBestConfig,pFlow,pConc)
 
-  call reset_config(pConfig)
-  call reset_config(pBestConfig)
+  call reset_configuration_stats(pConfig)
+  call reset_configuration_stats(pBestConfig)
 
   iNumFiles = iNumFiles - 1
 

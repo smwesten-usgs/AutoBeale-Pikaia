@@ -5,6 +5,8 @@ program unit_tests
   use beale_data
   use output
   use units
+  use strata
+  use iso_fortran_env, only : OUTPUT_UNIT
   implicit none
 
   type (STRATUM_STATS_T), dimension(:), pointer  :: pTestStrata
@@ -110,5 +112,40 @@ program unit_tests
 
   call calculate_daily_loads(pFlow=pTestFlow, pConc=pTestConc, pConfig=pTestConfig )
   call bealecalc_orig(pConfig=pTestConfig, pFlow=pTestFlow, pConc=pTestConc, pStrata=pTestStrata)
+
+  deallocate( pTestStrata )
+  allocate( pTestStrata(5))
+
+  ! assemble new STRATA dataset
+  pTestStrata(1)%iStartDate = julian_day( iYear=1997, iMonth=1, iDay=1 )
+  pTestStrata(1)%iEndDate   = julian_day( iYear=1997, iMonth=4, iDay=20 )
+  pTestStrata(1)%iNumDays   = pTestStrata(1)%iEndDate - pTestStrata(1)%iStartDate + 1
+
+  pTestStrata(2)%iStartDate = julian_day( iYear=1997, iMonth=4, iDay=21 )
+  pTestStrata(2)%iEndDate   = julian_day( iYear=1997, iMonth=5, iDay=26 )
+  pTestStrata(2)%iNumDays   = pTestStrata(2)%iEndDate - pTestStrata(2)%iStartDate + 1
+
+
+  pTestStrata(3)%iStartDate = julian_day( iYear=1997, iMonth=5, iDay=27 )
+  pTestStrata(3)%iEndDate   = julian_day( iYear=1997, iMonth=8, iDay=17 )
+  pTestStrata(3)%iNumDays   = pTestStrata(3)%iEndDate - pTestStrata(3)%iStartDate + 1
+
+
+  pTestStrata(4)%iStartDate = julian_day( iYear=1997, iMonth=8, iDay=18 )
+  pTestStrata(4)%iEndDate   = julian_day( iYear=1997, iMonth=12, iDay=1 )
+  pTestStrata(4)%iNumDays   = pTestStrata(4)%iEndDate - pTestStrata(4)%iStartDate + 1
+
+
+  pTestStrata(5)%iStartDate = julian_day( iYear=1997, iMonth=12, iDay=2 )
+  pTestStrata(5)%iEndDate   = julian_day( iYear=1997, iMonth=12, iDay=31 )
+  pTestStrata(5)%iNumDays   = pTestStrata(5)%iEndDate - pTestStrata(5)%iStartDate + 1
+
+  pTestConfig%iMaxNumStrata = 5
+
+  call calculate_daily_loads(pFlow=pTestFlow, pConc=pTestConc, pConfig=pTestConfig )
+  call bealecalc_orig(pConfig=pTestConfig, pFlow=pTestFlow, pConc=pTestConc, pStrata=pTestStrata)
+
+  call calculate_and_combine_stratum_loads( pTestConfig, pTestStrata, pTestFlow, pTestConc, pTestConfig%iMaxNumStrata )
+  call print_strata_summary(pTestConfig, pTestStrata, OUTPUT_UNIT )
 
 end program unit_tests

@@ -432,28 +432,24 @@ contains
 
 !--------------------------------------------------------------------------------------------------
 
-  subroutine print_strata_summary(pConfig, iLU)
+  subroutine print_strata_summary(pConfig, pStrata, iLU)
 
     !! [ ARGUMENTS ]
-    type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
-                                          ! program options, flags, and other settings
+    type (CONFIG_T), pointer                       :: pConfig
+    type (STRATUM_STATS_T), dimension(:), pointer  :: pStrata
 
     integer (kind=T_INT), intent(in) :: iLU
     integer (kind=T_INT) :: i
     integer (kind=T_INT) :: iSYear, iSMonth, iSDay
     integer (kind=T_INT) :: iEYear, iEMonth, iEDay
 
-
-  !  write(iLU,FMT=*) repeat("-",80)
-
     write(iLU,FMT=*) ' SUMMARY OVER ALL STRATA:'
-
     write(iLU,FMT="('    NUMBER OF STRATA:',i4)") pConfig%iMaxNumStrata
 
     do i=1,pConfig%iMaxNumStrata
 
-      call gregorian_date(pConfig%iStrataBound(i - 1) + 1, iSYear, iSMonth, iSDay)
-      call gregorian_date(pConfig%iStrataBound(i), iEYear, iEMonth, iEDay)
+      call gregorian_date(pStrata(i)%iStartDate, iSYear, iSMonth, iSDay)
+      call gregorian_date(pStrata(i)%iEndDate, iEYear, iEMonth, iEDay)
 
       write(iLU,&
        FMT="(t7,i3,t15,' -- begins on:',3x,i2.2,'/',i2.2,'/'," &
@@ -482,7 +478,7 @@ contains
         trim(sf_L_units(pConfig,pConfig%rCombinedLoadAnnualizedCI)),'/yr'
 
     write(iLU,&
-      FMT="('    TOTAL ANNNUALIZED FLOW:',t31,ES16.4,a)") &
+      FMT="('    TOTAL ANNUALIZED FLOW:',t31,ES16.4,a)") &
         pConfig%rTotalFlowAnnualized,' cubic meters'
 
     write(iLU,FMT=*) " "

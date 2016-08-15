@@ -166,11 +166,11 @@ subroutine calculate_Beale_load(pFlow, pConc, pStratum, pConfig)
   pStratum%rStratumMeanSquareError = pStratum%rDailyMeanSquareError * &
     REAL(pStratum%iNumDays**2,kind=T_REAL)
 
-  pStratum%rDailyLoadCI = rf_compute_CI(REAL(pStratum%iNumSamples - 1, kind=T_REAL), &
+  pStratum%rDailyLoadCI = calculate_confidence_interval(REAL(pStratum%iNumSamples - 1, kind=T_REAL), &
       pStratum%rDailyMeanSquareError)
 
 
-  pStratum%rStratumLoadCI = rf_compute_CI(REAL(pStratum%iNumSamples - 1, kind=T_REAL), &
+  pStratum%rStratumLoadCI = calculate_confidence_interval(REAL(pStratum%iNumSamples - 1, kind=T_REAL), &
       pStratum%rStratumMeanSquareError)
 
 end subroutine calculate_Beale_load
@@ -290,6 +290,11 @@ subroutine calculate_daily_loads(pFlow,pConc,pConfig)
   write(LU_STD_OUT,FMT="(t23,'----',t40,'----',t58,'----')")
 
   pConfig%iCountUniqueSamples = 0
+
+  ! calculate an "annualized" total flow
+  pConfig%rTotalFlow=SUM(pFlow%rFlow) * 86400_T_REAL    ! cubic meters of water
+  pConfig%rTotalFlowAnnualized =  pConfig%rTotalFlow * 365_T_REAL &
+      / REAL(pConfig%iTotNumDays,kind=T_REAL)
 
   do i=1,SIZE(pConc%rConc)
 
@@ -794,7 +799,7 @@ end function calculate_effective_degrees_of_freedom
 
 !----------------------------------------------------------------------
 
-function rf_compute_CI(rDegreesFreedom, rMSE)  result(r_CI)
+function calculate_confidence_interval(rDegreesFreedom, rMSE)  result(r_CI)
 
   real (kind=T_REAL), intent(in) :: rDegreesFreedom
   real (kind=T_REAL), intent(in) :: rMSE
@@ -847,7 +852,7 @@ function rf_compute_CI(rDegreesFreedom, rMSE)  result(r_CI)
   !       else
   !       write (3,11) oldtribname,flowes(1)*0.365d0,rmse(1)*0.133225d0,r(1)-1.,ci
 
-end function rf_compute_CI
+end function calculate_confidence_interval
 
 !----------------------------------------------------------------------
 
@@ -860,7 +865,24 @@ subroutine save_best_config(pBestConfig, pConfig)
   type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                       ! program options, flags, and other settings
 
-  if(pConfig%rCombinedLoadCI < pBestConfig%rCombinedLoadCI) then
+  ! [ LOCALS ]
+  logical (kind=T_LOGICAL) :: lIsBestConfig
+
+  if ( pConfig%iMinimizationStatistic == MINIMIZE_MEAN_SQUARED_ERROR ) then
+
+    lIsBestConfig = pConfig%rCombinedMSE < pBestConfig%rCombinedMSE
+
+  elseif ( pConfig%iMinimizationStatistic == MINIMIZE_CONFIDENCE_INTERVAL ) then
+
+    lIsBestConfig = pConfig%rCombinedLoadCI < pBestConfig%rCombinedLoadCI
+
+  else
+
+    call assert( lFALSE, "Internal programming error: unknown minimization statistic.")
+
+  endif
+
+  if( lIsBestConfig ) then
 
     pBestConfig%sFlowFileName = pConfig%sFlowFileName
     pBestConfig%iFlowFileFormat = pConfig%iFlowFileFormat
@@ -914,13 +936,11 @@ subroutine save_best_config(pBestConfig, pConfig)
 
   end if
 
-  return
-
 end subroutine save_best_config
 
 !----------------------------------------------------------------------
 
-subroutine reset_config(pConfig)
+subroutine reset_configuration_stats(pConfig)
 
   type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                       ! program options, flags, and other settings
@@ -939,11 +959,9 @@ subroutine reset_config(pConfig)
        rZERO
     pConfig%rCombinedLoadCI = 1.E+27
 
-    pConfig%iFuncCallNum = rZERO
+!    pConfig%iFuncCallNum = rZERO
 
-  return
-
-end subroutine reset_config
+end subroutine reset_configuration_stats
 
 !----------------------------------------------------------------------
 

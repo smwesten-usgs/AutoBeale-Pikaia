@@ -18,4 +18,5 @@ add_executable( autobeale_tests
       output.F90
       types.F90
       units.F90
+      strata.F90
       unit_tests.F90 )
