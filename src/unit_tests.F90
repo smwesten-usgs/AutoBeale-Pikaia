@@ -13,6 +13,7 @@ program unit_tests
   type (CONFIG_T), pointer                       :: pTestConfig
   type (CONC_T), dimension(:), pointer           :: pTestConc
   type (FLOW_T), dimension(:), pointer           :: pTestFlow
+  type (COMBINED_STATS_T), pointer               :: pTestStats
 
   integer :: test_flow_dates(365)
   integer :: test_conc_months(52)
@@ -66,6 +67,7 @@ program unit_tests
   allocate( pTestStrata(3) )
   allocate( pTestConc(52) )
   allocate( pTestFlow(365) )
+  allocate( pTestStats )
 
   ! assemble CONFIGURATION dataset
   pTestConfig%iMaxNumStrata = 3
@@ -110,7 +112,7 @@ program unit_tests
   pTestConc%iDay       = test_conc_days
   pTestConc%iYear      = 1997
 
-  call calculate_daily_loads(pFlow=pTestFlow, pConc=pTestConc, pConfig=pTestConfig )
+  call calculate_daily_loads(pFlow=pTestFlow, pConc=pTestConc, pConfig=pTestConfig, pStats=pTestStats )
   call bealecalc_orig(pConfig=pTestConfig, pFlow=pTestFlow, pConc=pTestConc, pStrata=pTestStrata)
 
   deallocate( pTestStrata )
@@ -142,10 +144,10 @@ program unit_tests
 
   pTestConfig%iMaxNumStrata = 5
 
-  call calculate_daily_loads(pFlow=pTestFlow, pConc=pTestConc, pConfig=pTestConfig )
+  call calculate_daily_loads(pFlow=pTestFlow, pConc=pTestConc, pConfig=pTestConfig, pStats=pTestStats )
   call bealecalc_orig(pConfig=pTestConfig, pFlow=pTestFlow, pConc=pTestConc, pStrata=pTestStrata)
 
-  call calculate_and_combine_stratum_loads( pTestConfig, pTestStrata, pTestFlow, pTestConc, pTestConfig%iMaxNumStrata )
-  call print_strata_summary(pTestConfig, pTestStrata, OUTPUT_UNIT )
+  call calculate_and_combine_stratum_loads( pTestConfig, pTestStrata, pTestStats, pTestFlow, pTestConc, pTestConfig%iMaxNumStrata )
+  call print_strata_summary(pTestConfig, pTestStrata, pTestStats, OUTPUT_UNIT )
 
 end program unit_tests

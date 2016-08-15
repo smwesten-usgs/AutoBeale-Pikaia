@@ -5,7 +5,7 @@ module output
 
 contains
 
-  subroutine write_R_script(pConfig,pBestConfig,pFlow,pConc)
+  subroutine write_R_script(pConfig,pBestConfig,pFlow,pConc, pBestStrata, pBestStats)
 
     type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                         ! program options, flags, and other settings
@@ -13,8 +13,10 @@ contains
     type (CONFIG_T), pointer :: pBestConfig ! pointer to data structure that contains
                                         ! program options, flags, and other settings
 
-    type (FLOW_T), dimension(:), pointer :: pFlow
-    type (CONC_T), dimension(:), pointer :: pConc
+    type (FLOW_T), dimension(:), pointer          :: pFlow
+    type (CONC_T), dimension(:), pointer          :: pConc
+    type (STRATUM_STATS_T), dimension(:), pointer :: pBestStrata
+    type (COMBINED_STATS_T), pointer              :: pBestStats
 
     character(len=256) :: s_WD = ""
     character(len=256) :: s_RD = ""
@@ -55,28 +57,28 @@ contains
 
     write(sSubTitle,FMT="('Load: ',3a,5x,'RMSE: ',a," &
       //"5x,'Annual Load: ',3a,5x,'Annual Load (jackknife): ',3a)") &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoad))), &
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rCombinedLoad))), &
       sPm, &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadCI))), &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedRMSE))), &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadAnnualized))), &
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rCombinedLoadCI))), &
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rCombinedRMSE))), &
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rCombinedLoadAnnualized))), &
       sPm, &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadAnnualizedCI))), &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rJackCombinedLoadAnnualized))), &
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rCombinedLoadAnnualizedCI))), &
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rJackCombinedLoadAnnualized))), &
       sPm, &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rJackCombinedLoadAnnualizedCI)))
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rJackCombinedLoadAnnualizedCI)))
 
     else
 
     write(sSubTitle,FMT="('Load: ',3a,5x,'RMSE: ',a," &
       //"5x,'Annual Load: ',3a)") &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoad))), &
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rCombinedLoad))), &
       sPm, &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadCI))), &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedRMSE))), &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadAnnualized))), &
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rCombinedLoadCI))), &
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rCombinedRMSE))), &
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rCombinedLoadAnnualized))), &
       sPm, &
-      trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rCombinedLoadAnnualizedCI)))
+      trim(ADJUSTL(sf_L_units(pConfig,pBestStats%rCombinedLoadAnnualizedCI)))
 
     endif
 
@@ -160,7 +162,7 @@ contains
 
     do i=1,pBestConfig%iMaxNumStrata - 1
 
-      call gregorian_date(pBestConfig%iStrataBound(i), iYear, iMonth, iDay)
+      call gregorian_date(pBestStrata(i)%iEndDate, iYear, iMonth, iDay)
 
       write(LU_R_SCRIPT,&
          FMT="('bound$Date[',a,']<-',a1,i4.4,'-',i2.2,'-',i2.2,a1)") &
@@ -309,7 +311,7 @@ contains
 
         write(LU_R_SCRIPT,FMT= *) &
           'text(x=strata$Date['//trim(int2char(j))//'],y=0.97*max(dummy),' &
-          //sQt//trim(ADJUSTL(sf_L_units(pConfig,pBestConfig%rStratumCorrectedLoad(j)))) &
+          //sQt//trim(ADJUSTL(sf_L_units(pConfig,pBestStrata(j)%rStratumCorrectedLoad ))) &
           //sQt//',srt=90,cex=0.7,col='//sQt//'red'//sQt//')'
 
       end do
@@ -368,12 +370,13 @@ contains
   end subroutine write_R_script
 
 
-  subroutine print_short_report(pConfig, pConc)
+  subroutine print_short_report(pConfig, pConc, pStats)
 
-    type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
-                                          ! program options, flags, and other settings
+    type (CONFIG_T), pointer             :: pConfig
     type (CONC_T), dimension(:), pointer :: pConc
+    type (COMBINED_STATS_T), pointer     :: pStats
 
+    ! [ LOCALS ]
     character (len=1)   :: sTab = CHAR(9)
     character (len=32)  :: sTimeStamp
 
@@ -387,22 +390,22 @@ contains
           trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,    &
           trim(pConc(1)%sConstituentName), sTab,                                &
           trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab,         &
-          pConfig%iMaxNumStrata,sTab,pConfig%rCombinedLoad                      &
+          pConfig%iMaxNumStrata,sTab,pStats%rCombinedLoad                      &
             / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor,sTab,        &
           trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab,                 &
-          pConfig%rCombinedLoadCI                                               &
+          pStats%rCombinedLoadCI                                               &
             / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
-          pConfig%rCombinedLoadAnnualized                                       &
+          pStats%rCombinedLoadAnnualized                                       &
             / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
-          pConfig%rCombinedLoadAnnualizedCI                                     &
+          pStats%rCombinedLoadAnnualizedCI                                     &
             / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
-          pConfig%rJackCombinedLoadAnnualized                                   &
+          pStats%rJackCombinedLoadAnnualized                                   &
             / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
-          pConfig%rJackCombinedLoadAnnualizedCI                                 &
+          pStats%rJackCombinedLoadAnnualizedCI                                 &
             / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor, sTab,       &
-          pConfig%rTotalFlowAnnualized, sTab,                                   &
-          pConfig%rCombinedMSE, sTab,pConfig%rCombinedRMSE,                     &
-          sTab,pConfig%rCombinedEffectiveDegreesFreedom, sTab,                  &
+          pStats%rTotalFlowAnnualized, sTab,                                   &
+          pStats%rCombinedMSE, sTab,pStats%rCombinedRMSE,                     &
+          sTab,pStats%rCombinedEffectiveDegreesFreedom, sTab,                  &
           pConfig%iFuncCallNum
 
   !  else
@@ -412,14 +415,14 @@ contains
   !        trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,&
   !        trim(pConc(1)%sConstituentName), sTab, &
   !        trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab, &
-  !        pConfig%iMaxNumStrata,sTab,pConfig%rCombinedLoad,sTab, &
+  !        pConfig%iMaxNumStrata,sTab,pStats%rCombinedLoad,sTab, &
   !        trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab, &
-  !        pConfig%rCombinedLoadCI, sTab, &
-  !        pConfig%rCombinedLoadAnnualized, sTab, &
-  !        pConfig%rCombinedLoadAnnualizedCI, sTab, &
-  !        pConfig%rTotalFlowAnnualized, sTab, &
-  !        pConfig%rCombinedMSE, sTab,pConfig%rCombinedRMSE,&
-  !        sTab,pConfig%rCombinedEffectiveDegreesFreedom, sTab, &
+  !        pStats%rCombinedLoadCI, sTab, &
+  !        pStats%rCombinedLoadAnnualized, sTab, &
+  !        pStats%rCombinedLoadAnnualizedCI, sTab, &
+  !        pStats%rTotalFlowAnnualized, sTab, &
+  !        pStats%rCombinedMSE, sTab,pStats%rCombinedRMSE,&
+  !        sTab,pStats%rCombinedEffectiveDegreesFreedom, sTab, &
   !        pConfig%iFuncCallNum
   !
   !  end if
@@ -432,11 +435,12 @@ contains
 
 !--------------------------------------------------------------------------------------------------
 
-  subroutine print_strata_summary(pConfig, pStrata, iLU)
+  subroutine print_strata_summary(pConfig, pStrata, pStats, iLU)
 
     !! [ ARGUMENTS ]
     type (CONFIG_T), pointer                       :: pConfig
     type (STRATUM_STATS_T), dimension(:), pointer  :: pStrata
+    type (COMBINED_STATS_T), pointer               :: pStats
 
     integer (kind=T_INT), intent(in) :: iLU
     integer (kind=T_INT) :: i
@@ -462,37 +466,37 @@ contains
 
     write(iLU,&
       FMT="('    COMBINED LOAD:',t31,a25)") &
-        trim(sf_L_units(pConfig,pConfig%rCombinedLoad))
+        trim(sf_L_units(pConfig,pStats%rCombinedLoad))
     write(iLU,&
       FMT="('    CONFIDENCE INTERVAL:',t31,a25)") &
-        trim(sf_L_units(pConfig,pConfig%rCombinedLoadCI))
+        trim(sf_L_units(pConfig,pStats%rCombinedLoadCI))
 
     write(iLU,FMT=*) " "
 
     write(iLU,&
       FMT="('    COMBINED LOAD (PER YEAR):',t31,a25,a3)") &
-        trim(sf_L_units(pConfig,pConfig%rCombinedLoadAnnualized)),'/yr'
+        trim(sf_L_units(pConfig,pStats%rCombinedLoadAnnualized)),'/yr'
 
     write(iLU,&
       FMT="('    COMBINED LOAD CI:',t31,a25,a3)") &
-        trim(sf_L_units(pConfig,pConfig%rCombinedLoadAnnualizedCI)),'/yr'
+        trim(sf_L_units(pConfig,pStats%rCombinedLoadAnnualizedCI)),'/yr'
 
     write(iLU,&
       FMT="('    TOTAL ANNUALIZED FLOW:',t31,ES16.4,a)") &
-        pConfig%rTotalFlowAnnualized,' cubic meters'
+        pStats%rTotalFlowAnnualized,' cubic meters'
 
     write(iLU,FMT=*) " "
 
     write(iLU,&
       FMT="('    COMBINED MSE:',t31,a28)") &
-        trim(sf_L2_units(pConfig,pConfig%rCombinedMSE))
+        trim(sf_L2_units(pConfig,pStats%rCombinedMSE))
     write(iLU,&
       FMT="('    COMBINED RMSE:',t31,a25)") &
-        trim(sf_L_units(pConfig,pConfig%rCombinedRMSE))
+        trim(sf_L_units(pConfig,pStats%rCombinedRMSE))
 
     write(iLU,&
       FMT="('    COMBINED DEGREES FREEDOM:',t31,13x,f12.2)") &
-        pConfig%rCombinedEffectiveDegreesFreedom
+        pStats%rCombinedEffectiveDegreesFreedom
     write(iLU,&
       FMT="('    NUMBER of strata boundary sets evaluated:',i10)") &
         pConfig%iFuncCallNum

@@ -63,17 +63,16 @@ subroutine find_initial_strata(pConfig,pConc, n, x)
         iCount = COUNT(pConc%iJulianDay>=iStartBound &
                .and. pConc%ijulianDay <= (iEndBound+iMidBound)/2. &
                .and. pConc%lInclude)
-
-
-!        print *, 'i:',i
-!        print *, 'iStartBound:',iStartBound
-!        print *, 'iEndBound:', iEndBound
-!        print *, 'iMidBound:',iMidbound
-!        print *, 'iTotDays:',iTotDays
-!        print *, 'iStartDate:',pConfig%iStartDate
-!        print *, 'iCount:', iCount
-!        print *, 'x(i):',x(i)
-!        print *, '---'
+        !
+        ! print *, 'i:',i
+        ! print *, 'iStartBound:',iStartBound
+        ! print *, 'iEndBound:', iEndBound
+        ! print *, 'iMidBound:',iMidbound
+        ! print *, 'iTotDays:',iTotDays!
+        ! print *, 'iStartDate:',pConfig%iStartDate
+        ! print *, 'iCount:', iCount
+        ! print *, 'x(i):',x(i)
+        ! print *, '---'
 
         iStartBound = iEndBound
         iMidBound = -99999
@@ -110,7 +109,7 @@ subroutine check_stratum_validity(pConfig,pFlow,pConc,pStratum,iStrataNum,lValid
   lValid = lTRUE
 
   call Assert(LOGICAL(iStrataNum<=pConfig%iMaxNumStrata,kind=T_LOGICAL), &
-    "Too many strata specified in subroutine check_stratum_validity")
+    "Too many strata specified in subroutine check_stratum_validity", __FILE__, __LINE__)
 
 !  pStratum%iStartDate = pConfig%iStrataBound(iStrataNum - 1) + 1
 !  pStratum%iEndDate = pConfig%iStrataBound(iStrataNum)
@@ -130,10 +129,11 @@ end subroutine check_stratum_validity
 
 !--------------------------------------------------------------------------------------------------
 
-subroutine calculate_and_combine_stratum_loads( pConfig, pStrata, pFlow, pConc, iMaxNumStrata )
+subroutine calculate_and_combine_stratum_loads( pConfig, pStrata, pStats, pFlow, pConc, iMaxNumStrata )
 
   type (CONFIG_T), pointer                                :: pConfig
   type (STRATUM_STATS_T), dimension(:), pointer           :: pStrata
+  type (COMBINED_STATS_T), pointer                        :: pStats
   type (FLOW_T), dimension(:), pointer                    :: pFlow
   type (CONC_T), dimension(:), pointer                    :: pConc
   integer (kind=T_INT), intent(in)                        :: iMaxNumStrata
@@ -147,14 +147,14 @@ subroutine calculate_and_combine_stratum_loads( pConfig, pStrata, pFlow, pConc, 
   real (kind=T_REAL)                  :: r_edf
   character (len=256)                 :: sBuf
 
-  pConfig%rCombinedLoad = rZERO
-  pConfig%rCombinedMSE  = rZERO
-  pConfig%rCombinedRMSE = rZERO
+  pStats%rCombinedLoad = rZERO
+  pStats%rCombinedMSE  = rZERO
+  pStats%rCombinedRMSE = rZERO
 
   ! loop over all strata members
   do indx=1, iMaxNumStrata
     pStratum => pStrata(indx)
-    call check_stratum_validity(pConfig, pFlow, pConc, pStratum, indx, lValid)
+    call check_stratum_validity(pConfig, pFlow, pConc, pStratum, iMaxNumStrata, lValid)
     call gregorian_date(pStratum%iStartDate, iB_Year, iB_Month, iB_Day)
     call gregorian_date(pStratum%iEndDate, iE_Year, iE_Month, iE_Day)
 
@@ -170,11 +170,11 @@ subroutine calculate_and_combine_stratum_loads( pConfig, pStrata, pFlow, pConc, 
 
       call calculate_Beale_load(pFlow,pConc,pStratum, pConfig)
 
-      pConfig%rCombinedLoad = pConfig%rCombinedLoad + pStrata(indx)%rStratumCorrectedLoad
+      pStats%rCombinedLoad = pStats%rCombinedLoad + pStrata(indx)%rStratumCorrectedLoad
 
       ! Equation M, Baum (1982)
       ! MSE = MSE_d * N^2 = sum(N_h^2 * MSE_hd)
-      pConfig%rCombinedMSE = pConfig%rCombinedMSE + pStrata(indx)%rStratumMeanSquareError
+      pStats%rCombinedMSE = pStats%rCombinedMSE + pStrata(indx)%rStratumMeanSquareError
 
     else
 
@@ -203,24 +203,24 @@ subroutine calculate_and_combine_stratum_loads( pConfig, pStrata, pFlow, pConc, 
 
   if( any( pStrata(1:pConfig%iMaxNumStrata )%rStratumCorrectedLoad < 0. ) ) then
 
-    pConfig%rCombinedLoad = -HUGE( rZERO )
-    pConfig%rCombinedMSE = -HUGE( rZERO )
-    pConfig%rCombinedRMSE = -HUGE( rZERO )
-    pConfig%rCombinedLoadCI = -HUGE( rZERO )
-    pConfig%rCombinedLoadAnnualized = -HUGE( rZERO )
-    pConfig%rCombinedLoadAnnualizedCI = -HUGE( rZERO )
+    pStats%rCombinedLoad = -HUGE( rZERO )
+    pStats%rCombinedMSE = -HUGE( rZERO )
+    pStats%rCombinedRMSE = -HUGE( rZERO )
+    pStats%rCombinedLoadCI = -HUGE( rZERO )
+    pStats%rCombinedLoadAnnualized = -HUGE( rZERO )
+    pStats%rCombinedLoadAnnualizedCI = -HUGE( rZERO )
 
   else
 
-    pConfig%rCombinedRMSE = sqrt(pConfig%rCombinedMSE)
-    r_edf = calculate_effective_degrees_of_freedom(pConfig,pStrata)
+    pStats%rCombinedRMSE = sqrt(pStats%rCombinedMSE)
+    r_edf = calculate_effective_degrees_of_freedom(pConfig, pStrata, pStats)
 
-    pConfig%rCombinedLoadCI = calculate_confidence_interval(r_edf, pConfig%rCombinedMSE)
+    pStats%rCombinedLoadCI = calculate_confidence_interval(r_edf, pStats%rCombinedMSE)
 
-    pConfig%rCombinedLoadAnnualized = pConfig%rCombinedLoad * 365. / REAL(pConfig%iTotNumDays,kind=T_REAL)
+    pStats%rCombinedLoadAnnualized = pStats%rCombinedLoad * 365. / REAL(pConfig%iTotNumDays,kind=T_REAL)
 
-    pConfig%rCombinedLoadAnnualizedCI = calculate_confidence_interval(r_edf, &
-       pConfig%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, &
+    pStats%rCombinedLoadAnnualizedCI = calculate_confidence_interval(r_edf, &
+       pStats%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, &
          kind=T_REAL))
 
   end if

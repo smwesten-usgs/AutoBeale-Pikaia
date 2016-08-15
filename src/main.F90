@@ -36,6 +36,14 @@ program main
   call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
      "Could not allocate memory for copy of program control data structure")
 
+  allocate ( pStats, stat=iStat)
+  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+     "Could not allocate memory for copy of combined stats data structure")
+
+  allocate ( pBestStats, stat=iStat)
+    call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+      "Could not allocate memory for copy of combined stats data structure")
+
   iCommandCount = COMMAND_ARGUMENT_COUNT()
 
   if(iCommandCount < 4) then
@@ -395,6 +403,14 @@ program main
   write(LU_STD_OUT,FMT="('Allocated memory to hold ',i4,' jackknife results')") &
      pConfig%iNumConcPoints
 
+  ALLOCATE (pStrata(iMAX_STRATA), STAT=iStat)
+  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+    "Could not allocate memory for BEALE STATS data array")
+
+  ALLOCATE (pBestStrata(iMAX_STRATA), STAT=iStat)
+  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+    "Could not allocate memory for BEALE STATS data array")
+
   call read_data (pConfig, pFlow, pConc)
 
   call clean_concentration_data(pFlow,pConc)
@@ -443,7 +459,7 @@ program main
     stop
   end if
 
-  call calculate_daily_loads(pFlow,pConc,pConfig)
+  call calculate_daily_loads(pFlow,pConc,pConfig, pStats)
 
   call calculate_and_report_monthly_stats(LU_LONG_RPT,pFlow,pConc,pConfig)
 
@@ -470,20 +486,21 @@ program main
       ! to determine the optimum stratification scheme
       call pikaia_driver(pConfig, pBestConfig)
 
-      pJackknife(j)%rEstimate = pBestConfig%rCombinedLoadAnnualized
-      pJackknife(j)%rEstimate_SQ = pBestConfig%rCombinedLoadAnnualized**2
+      pJackknife(j)%rEstimate = pBestStats%rCombinedLoadAnnualized
+      pJackknife(j)%rEstimate_SQ = pBestStats%rCombinedLoadAnnualized**2
 
       write(LU_STD_OUT, &
         "('  jackknife iteration ',i3,' of ',i3,' : annual load = ',a)") &
          j,iNumIterations,trim(sf_L_units(pConfig,pJackknife(j)%rEstimate))
+
+
 
       write(LU_JACKKNIFE_OUT,FMT="(4a,2(i4.4,'-',i2.2,'-',i2.2,a),a)") &
           trim(sSite), sTab,trim(sConstituent),sTab, &
           iBYear,iBMonth,iBDay,sTab,iEYear,iEMonth,iEDay,sTab, &
           trim(sf_L_units(pConfig,pJackknife(j)%rEstimate))
 
-      call reset_configuration_stats(pConfig)
-      call reset_configuration_stats(pBestConfig)
+      call reset_combined_stats(pStats)
 
     end do
 
@@ -506,17 +523,16 @@ program main
       (REAL(iNumIterations) - 1_T_REAL ) * rSum1 / REAL(iNumIterations))
 
     ! now run one more time in non-Jackknife mode
-    call reset_configuration_stats(pConfig)
-    call reset_configuration_stats(pBestConfig)
+    call reset_combined_stats(pStats)
     pConc%lInclude = lTRUE
     pConfig%lJackknife=lFALSE
     pConfig%iNumConcPoints = size(pConc)
 
-    pConfig%rJackCombinedLoadAnnualizedCI = rSE_CI
-    pConfig%rJackCombinedLoadAnnualized = rThetaHat
+    pStats%rJackCombinedLoadAnnualizedCI = rSE_CI
+    pStats%rJackCombinedLoadAnnualized = rThetaHat
 
-    pBestConfig%rJackCombinedLoadAnnualizedCI = rSE_CI
-    pBestConfig%rJackCombinedLoadAnnualized = rThetaHat
+    pBestStats%rJackCombinedLoadAnnualizedCI = rSE_CI
+    pBestStats%rJackCombinedLoadAnnualized = rThetaHat
 
     call pikaia_driver(pConfig, pBestConfig)
 
@@ -546,11 +562,10 @@ program main
 
   end if
 
-  call print_short_report(pBestConfig,pConc)
-  call write_R_script(pConfig,pBestConfig,pFlow,pConc)
+  call print_short_report(pBestConfig,pConc, pBestStats)
+  call write_R_script(pConfig,pBestConfig,pFlow,pConc, pBestStrata, pBestStats)
 
-  call reset_configuration_stats(pConfig)
-  call reset_configuration_stats(pBestConfig)
+  call reset_combined_stats(pStats)
 
   iNumFiles = iNumFiles - 1
 
@@ -578,6 +593,10 @@ program main
   if(iNumFiles<=0) exit
 
   end do main_loop
+
+  DEALLOCATE (pStrata, STAT=iStat)
+  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+     "Could not deallocate memory for BEALE STATS data array")
 
   DEALLOCATE (pConfig, STAT=iStat)
   call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &

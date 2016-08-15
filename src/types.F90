@@ -123,35 +123,8 @@ module types
     integer (kind=T_INT) :: iMaxNumStrata = 1
     integer (kind=T_INT) :: iMaxEvalStrata = 11
     integer (kind=T_INT) :: iTotNumDays = 0
-
-    real (kind=T_REAL) :: rTotalFlow                 = 0.
-    real (kind=T_REAL) :: rCombinedLoad              = 0.
-    real (kind=T_REAL) :: rCombinedLoadAnnualized    = 0.
-    real (kind=T_REAL) :: rTotalFlowAnnualized       = 0.
-    real (kind=T_REAL) :: rCombinedMSE               = HUGE( 0. )
-    real (kind=T_REAL) :: rCombinedRMSE              = HUGE( 0. )
-    real (kind=T_REAL) :: rCombinedLoadCI            = HUGE( 0. )
-    real (kind=T_REAL) :: rCombinedLoadAnnualizedCI  = HUGE( 0. )
-
-    real (kind=T_REAL) :: rCombinedDailyLoad         = HUGE( 0. )
-    real (kind=T_REAL) :: rCombinedDailyMSE          = HUGE( 0. )
-    real (kind=T_REAL) :: rCombinedDailyRMSE         = HUGE( 0. )
-
-    real (kind=T_REAL) :: rJackCombinedLoadAnnualized   = HUGE( 0. )
-    real (kind=T_REAL) :: rJackCombinedLoadAnnualizedCI = HUGE( 0. )
-
-    real (kind=T_REAL) :: rCombinedEffectiveDegreesFreedom  = HUGE( 0. )
-
     integer (kind=T_INT) :: iCountUniqueSamples  = 0
-
     integer (kind=T_INT) :: iFuncCallNum         = 0
-
-    integer (kind=T_INT), dimension(0:iMAX_STRATA) :: iStrataBound
-    real (kind=T_REAL), dimension(0:iMAX_STRATA) :: rStratumCorrectedLoad
-    real (kind=T_REAL), dimension(0:iMAX_STRATA) :: rStratumMeanSquareError
-    real (kind=T_REAL), dimension(0:iMAX_STRATA) :: rStratumLoadCI
-
-
     real (kind=T_REAL),dimension(iMAX_STRATA) :: rPikaiaXValues
   end type CONFIG_T
 
@@ -193,6 +166,26 @@ module types
     real (kind=T_REAL) :: rS_ql2
     real (kind=T_REAL) :: rS_q3
   end type STRATUM_STATS_T
+
+  type, public :: COMBINED_STATS_T
+    real (kind=T_REAL) :: rTotalFlow                 = 0.
+    real (kind=T_REAL) :: rCombinedLoad              = 0.
+    real (kind=T_REAL) :: rCombinedLoadAnnualized    = 0.
+    real (kind=T_REAL) :: rTotalFlowAnnualized       = 0.
+    real (kind=T_REAL) :: rCombinedMSE               = HUGE( 0. )
+    real (kind=T_REAL) :: rCombinedRMSE              = HUGE( 0. )
+    real (kind=T_REAL) :: rCombinedLoadCI            = HUGE( 0. )
+    real (kind=T_REAL) :: rCombinedLoadAnnualizedCI  = HUGE( 0. )
+
+    real (kind=T_REAL) :: rCombinedDailyLoad         = HUGE( 0. )
+    real (kind=T_REAL) :: rCombinedDailyMSE          = HUGE( 0. )
+    real (kind=T_REAL) :: rCombinedDailyRMSE         = HUGE( 0. )
+
+    real (kind=T_REAL) :: rJackCombinedLoadAnnualized   = HUGE( 0. )
+    real (kind=T_REAL) :: rJackCombinedLoadAnnualizedCI = HUGE( 0. )
+
+    real (kind=T_REAL) :: rCombinedEffectiveDegreesFreedom  = HUGE( 0. )
+  end type COMBINED_STATS_T
 
 
   type,public :: MONTH_T
@@ -357,22 +350,73 @@ end function
 !
 ! SOURCE
 
-  subroutine Assert(lCondition,sErrorMessage)
+subroutine assert(lCondition, sMessage, sModule, iLine, sCalledBy, iCalledByLine )
 
-  ! ARGUMENTS
-  logical (kind=T_LOGICAL), intent(in) :: lCondition
-  character (len=*), intent(in) :: sErrorMessage
+   logical (kind=T_LOGICAL), intent(in)                :: lCondition
+   character (len=*), intent(in)                       :: sMessage
+   character (len=*), intent(in), optional             :: sCalledBy
+   integer (kind=T_INT), intent(in), optional          :: iCalledByLine
+   character (len=*), intent(in), optional             :: sModule
+   integer (kind=T_INT), intent(in), optional          :: iLine
 
-  if ( .not. lCondition ) then
-      write(LU_STD_OUT,FMT=*) 'FATAL ERROR - HALTING MODEL RUN'
-      write(LU_STD_OUT,FMT=*) trim(sErrorMessage)
-      flush(LU_STD_OUT)
-      stop
-  end if
+   if (.not. lCondition) then
 
-  return
+     if (present( sCalledBy ) .and. present( iCalledByLine ) &
+       .and. present(sModule) .and. present(iLine) ) then
+       call die( sMessage=sMessage, sCalledBy=sCalledBy, iCalledByLine=iCalledByLine, &
+         sModule=sModule, iLine=iLine )
+     elseif ( present(sModule) .and. present(iLine) ) then
+       call die( sMessage=sMessage, sModule=sModule, iLine=iLine )
+     elseif ( present(sModule) ) then
+       call die( sMessage=sMessage, sModule=sModule )
+     else
+       call die( sMessage=sMessage )
+     endif
 
-  end subroutine Assert
+   endif
+
+ end subroutine assert
+
+
+ subroutine die(sMessage, sModule, iLine, sHints, sCalledBy, iCalledByLine )
+
+  character (len=*), intent(in)               :: sMessage
+  character (len=*), intent(in), optional     :: sModule
+  integer (kind=T_INT), intent(in), optional  :: iLine
+  character (len=*), intent(in), optional     :: sHints
+  character (len=*), intent(in), optional     :: sCalledBy
+  integer (kind=T_INT), intent(in), optional  :: iCalledByLine
+
+  ! [ LOCALS ]
+  character (len=6) :: sLineNum
+
+  write(*,fmt="(/,a,/)") "** ERROR -- PROGRAM EXECUTION HALTED **"
+  write(*,fmt="(t12,a)") "error condition:  "//trim(sMessage)
+
+  if ( present( sCalledBy ) )  &
+    write(*,fmt="(t18,a)") "called by:  "//trim(sCalledBy)
+
+  if (present(iCalledByLine)) then
+    write(sLineNum, fmt="(i0)") iCalledByLine
+    write(*,fmt="(t16,a)") "line number:  "//trim(sLineNum)
+  endif
+
+  if (present(sModule))  &
+    write(*,fmt="(t21,a)")  "module:  "//trim(sModule)
+
+  if (present(iLine)) then
+    write(sLineNum, fmt="(i0)") iLine
+    write(*,fmt="(t16,a)") "line number:  "//trim(sLineNum)
+  endif
+
+  if (present(sHints)) &
+    write(*,fmt="(t12,a)") "==> "//trim(sHints)
+
+  write(*,fmt="(/)")
+
+  stop
+
+end subroutine die
 
 !!***
 

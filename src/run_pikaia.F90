@@ -36,13 +36,11 @@ subroutine pikaia_driver(pConfig, pBestConfig)
 
   real (kind=T_REAL) :: fb_min,fb_max,fb, rTempval, r_edf, r_CI
 
-  ALLOCATE (pStrata(iMAX_STRATA), STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not allocate memory for BEALE STATS data array")
-
-  ALLOCATE(x(PIKAIA_MAX_NUM_PARAMETERS), STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not allocate memory for PIKAIA genotype data structure")
+  if ( .not. allocated( x ) ) then
+    ALLOCATE(x(PIKAIA_MAX_NUM_PARAMETERS), STAT=iStat)
+    call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+       "Could not allocate memory for PIKAIA genotype data structure")
+  endif
 
 
 !----------------------------------------------------------------------
@@ -120,32 +118,36 @@ subroutine pikaia_driver(pConfig, pBestConfig)
   ! first do the UNSTRATIFIED case...
   iCurrentStrata = 1
   pConfig%iMaxNumStrata = 1
-  pConfig%iStrataBound(0) = MINVAL(pFlow%iJulianDay)
-  pConfig%iStrataBound(pConfig%iMaxNumStrata) = MAXVAL(pFlow%iJulianDay)
+
 
   pStratum=>pStrata(1)
-  pStratum%iStartDate = pConfig%iStrataBound(0)
-  pStratum%iEndDate =pConfig%iStrataBound(pConfig%iMaxNumStrata)
-  call gregorian_date(pConfig%iStrataBound(0), iYear, iMonth, iDay)
+
+  pStratum%iStartDate = minval( pFlow%iJulianDay )
+
+  pStratum%iEndDate = maxval( pFlow%iJulianDay )
+
+  call gregorian_date(pStratum%iStartDate, iYear, iMonth, iDay)
+
   sStartDate = trim(int2char(iMonth))//"/"//trim(int2char(iDay))//"/"//trim(int2char(iYear))
-  call gregorian_date(pConfig%iStrataBound(pConfig%iMaxNumStrata), &
-     iYear, iMonth, iDay)
+
+  call gregorian_date(pStratum%iEndDate, iYear, iMonth, iDay)
+
   sEndDate = trim(int2char(iMonth))//"/"//trim(int2char(iDay))//"/"//trim(int2char(iYear))
 
   call calculate_Beale_load(pFlow,pConc,pStratum, pConfig)
 
-  pConfig%rCombinedLoad = pStrata( iCurrentStrata )%rStratumCorrectedLoad
-  pConfig%rCombinedMSE = pStrata( iCurrentStrata )%rStratumMeanSquareError
+  pStats%rCombinedLoad = pStrata( iCurrentStrata )%rStratumCorrectedLoad
+  pStats%rCombinedMSE = pStrata( iCurrentStrata )%rStratumMeanSquareError
 
-  pConfig%rCombinedRMSE = sqrt(pConfig%rCombinedMSE)
+  pStats%rCombinedRMSE = sqrt(pStats%rCombinedMSE)
 
-  r_edf = calculate_effective_degrees_of_freedom( pConfig, pStrata )
-  pConfig%rCombinedLoadCI = calculate_confidence_interval(r_edf, pConfig%rCombinedMSE )
+  r_edf = calculate_effective_degrees_of_freedom( pConfig, pStrata, pStats )
+  pStats%rCombinedLoadCI = calculate_confidence_interval(r_edf, pStats%rCombinedMSE )
 
-  pConfig%rCombinedLoadAnnualized = pConfig%rCombinedLoad * 365.25_T_REAL / REAL(pConfig%iTotNumDays,kind=T_REAL)
+  pStats%rCombinedLoadAnnualized = pStats%rCombinedLoad * 365.25_T_REAL / REAL(pConfig%iTotNumDays,kind=T_REAL)
 
-    pConfig%rCombinedLoadAnnualizedCI = calculate_confidence_interval(r_edf, &
-       pConfig%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, kind=T_REAL))
+    pStats%rCombinedLoadAnnualizedCI = calculate_confidence_interval(r_edf, &
+       pStats%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, kind=T_REAL))
 
   sBuf = trim(pConc(1)%sTribName)//"_"//trim(pConc(1)%sConstituentName)
 
@@ -153,20 +155,20 @@ subroutine pikaia_driver(pConfig, pBestConfig)
     trim(sBuf),sTab, &
     iNumStrata, sTab,&
     trim(sStartDate),sTab,trim(sEndDate),sTab, &
-    pConfig%rCombinedLoad, sTab, pConfig%rCombinedRMSE, sTab, &
-    pConfig%rCombinedEffectiveDegreesFreedom, sTab, &
-    pConfig%rCombinedLoadCI, sTab, &
+    pStats%rCombinedLoad, sTab, pStats%rCombinedRMSE, sTab, &
+    pStats%rCombinedEffectiveDegreesFreedom, sTab, &
+    pStats%rCombinedLoadCI, sTab, &
     pStrata(iCurrentStrata)%sStartDate,sTab,pStrata(iCurrentStrata)%sEndDate,sTab
 
-  call save_best_config(pBestConfig,pConfig)
+  call save_best_result(pBestConfig,pConfig, pBestStrata, pStrata, pBestStats, pStats )
 
   if(.not. pConfig%lJackknife) then
 
     call print_stratum_stats(pConfig, pStratum, pFlow, pConc, iCurrentStrata, LU_STD_OUT)
-    call print_strata_summary(pConfig, pStrata, LU_STD_OUT)
+    call print_strata_summary(pConfig, pStrata, pStats, LU_STD_OUT)
 
     call print_stratum_stats(pConfig,pStratum, pFlow, pConc, iCurrentStrata, LU_LONG_RPT)
-    call print_strata_summary(pConfig, pStrata, LU_LONG_RPT)
+    call print_strata_summary(pConfig, pStrata, pStats, LU_LONG_RPT)
 
   end if
 
@@ -189,10 +191,6 @@ subroutine pikaia_driver(pConfig, pBestConfig)
     ctrl(1) = PIKAIA_MAX_POPULATION_SIZE    ! # individuals
     ctrl(2) = PIKAIA_MAX_GENERATION_LENGTH  ! # generations
 
-    ! record absolute start and end date values
-    pConfig%iStrataBound(0) = MINVAL(pFlow%iJulianDay) - 1
-    pConfig%iStrataBound(pConfig%iMaxNumStrata) = MAXVAL(pFlow%iJulianDay)
-
     if(iNumStrata > ( pConfig%iCountUniqueSamples - 1 ) /2 ) then
       write(6,FMT="('Not enough data to support ',i3,' or more strata...')") iNumStrata
       exit
@@ -205,7 +203,7 @@ subroutine pikaia_driver(pConfig, pBestConfig)
 
       ! the call below resets the combined load statistics to zero; the boundaries and
       ! strata definitions are retained
-      call reset_configuration_stats(pConfig)
+      call reset_combined_stats(pStats)
 
       call perform_pikaia_optimization( evaluate_fitness_function, iNumBounds, ctrl, x, fb, status )
 
@@ -232,22 +230,14 @@ subroutine pikaia_driver(pConfig, pBestConfig)
     write(LU_STATS_OUT,FMT="(a,a,i4,5a,4(f14.2,a),f14.2,500a)") &
       trim(sBuf),sTab,iNumStrata, sTab,&
       trim(sStartDate),sTab,trim(sEndDate),sTab, &
-       pConfig%rCombinedLoad, sTab, pConfig%rCombinedLoadCI, sTab, &
-       pConfig%rCombinedLoadAnnualized, sTab, &
-       pConfig%rCombinedEffectiveDegreesFreedom, sTab, &
-         pConfig%rCombinedRMSE, sTab, &
+       pStats%rCombinedLoad, sTab, pStats%rCombinedLoadCI, sTab, &
+       pStats%rCombinedLoadAnnualized, sTab, &
+       pStats%rCombinedEffectiveDegreesFreedom, sTab, &
+         pStats%rCombinedRMSE, sTab, &
       (pStrata(k)%sStartDate,sTab,pStrata(k)%sEndDate,sTab, &
         k=1,iNumStrata)
 
     flush(LU_STATS_OUT)
-
-    ! copy the specifics of the stratification to the Pconfig data structure
-    do j=1,iNumStrata
-      pStratum=>pStrata(j)
-      pConfig%rStratumCorrectedLoad(j) = pStratum%rStratumCorrectedLoad
-      pConfig%rStratumMeanSquareError(j) = pStratum%rStratumMeanSquareError
-      pConfig%rStratumLoadCI(j) = pStratum%rStratumLoadCI
-    end do
 
     if(.not. pConfig%lJackknife) then
 
@@ -260,8 +250,8 @@ subroutine pikaia_driver(pConfig, pBestConfig)
         call print_stratum_stats(pConfig,pStratum, pFlow, pConc, j, LU_LONG_RPT)
       end do
 
-      call print_strata_summary(pConfig, pStrata, LU_STD_OUT)
-      call print_strata_summary(pConfig, pStrata, LU_LONG_RPT)
+      call print_strata_summary(pConfig, pBestStrata, pBestStats, LU_STD_OUT)
+      call print_strata_summary(pConfig, pBestStrata, pBestStats, LU_LONG_RPT)
 
       write(LU_STD_OUT,FMT=*) " "
 
@@ -269,7 +259,7 @@ subroutine pikaia_driver(pConfig, pBestConfig)
 
     call bealecalc_orig(pConfig, pFlow, pConc, pStrata)
 
-    call save_best_config(pBestConfig,pConfig)
+    call save_best_result(pBestConfig,pConfig, pBestStrata, pStrata, pBestStats, pStats)
 
   end do
 
@@ -287,18 +277,14 @@ subroutine pikaia_driver(pConfig, pBestConfig)
     write(LU_STD_OUT,*) repeat("=",80)
     write(LU_LONG_RPT,*) repeat("=",80)
 
-    call print_strata_summary(pBestConfig, pStrata, LU_STD_OUT)
-    call print_strata_summary(pBestConfig, pStrata, LU_LONG_RPT)
+    call print_strata_summary(pBestConfig, pBestStrata, pBestStats, LU_STD_OUT)
+    call print_strata_summary(pBestConfig, pBestStrata, pBestStats, LU_LONG_RPT)
 
   end if
 
 !----------------------------------------------------------------------
 ! Deallocate pointers and clean up
 !----------------------------------------------------------------------
-
-  DEALLOCATE (pStrata, STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not deallocate memory for BEALE STATS data array")
 
   DEALLOCATE(x, STAT=iStat)
   call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &

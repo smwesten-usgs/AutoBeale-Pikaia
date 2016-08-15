@@ -273,12 +273,12 @@ end subroutine calculate_variance
 
 !----------------------------------------------------------------------
 
-subroutine calculate_daily_loads(pFlow,pConc,pConfig)
+subroutine calculate_daily_loads(pFlow,pConc,pConfig, pStats)
 
   type (FLOW_T), dimension(:), pointer :: pFlow
   type (CONC_T), dimension(:), pointer :: pConc
-  type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
-                                        ! program options, flags, and other settings
+  type (CONFIG_T), pointer             :: pConfig
+  type (COMBINED_STATS_T), pointer     :: pStats
 
   integer (kind=T_INT) :: i,j
   integer (kind=T_INT) :: iDayOfYear,iNumDaysInYear
@@ -292,8 +292,8 @@ subroutine calculate_daily_loads(pFlow,pConc,pConfig)
   pConfig%iCountUniqueSamples = 0
 
   ! calculate an "annualized" total flow
-  pConfig%rTotalFlow=SUM(pFlow%rFlow) * 86400_T_REAL    ! cubic meters of water
-  pConfig%rTotalFlowAnnualized =  pConfig%rTotalFlow * 365_T_REAL &
+  pStats%rTotalFlow=SUM(pFlow%rFlow) * 86400_T_REAL    ! cubic meters of water
+  pStats%rTotalFlowAnnualized =  pStats%rTotalFlow * 365_T_REAL &
       / REAL(pConfig%iTotNumDays,kind=T_REAL)
 
   do i=1,SIZE(pConc%rConc)
@@ -729,12 +729,13 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStrata)
 
 !-----------------------------------------------------------------------
 
-function calculate_effective_degrees_of_freedom(pConfig,pStratum)  result(r_edf)
+function calculate_effective_degrees_of_freedom(pConfig,pStratum, pStats)  result(r_edf)
 
   type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                       ! program options, flags, and other settings
 
   type (STRATUM_STATS_T), dimension(:), pointer :: pStratum
+  type (COMBINED_STATS_T), pointer              :: pStats
 
   integer (kind=T_INT) :: i
 
@@ -754,7 +755,7 @@ function calculate_effective_degrees_of_freedom(pConfig,pStratum)  result(r_edf)
 
     r_edf = REAL(pStratum(1)%iNumSamples,kind=T_REAL)-1.0_T_REAL  !r
     rMSE_d = pStratum(1)%rDailyMeanSquareError
-    pConfig%rCombinedDailyMSE = rMSE_d
+    pStats%rCombinedDailyMSE = rMSE_d
 
   else
 
@@ -777,8 +778,8 @@ function calculate_effective_degrees_of_freedom(pConfig,pStratum)  result(r_edf)
       ! combined strata
       rMSE_d = rMSE_d + pStratum(i)%rDailyMeanSquareError * rN_h**2 / rN**2
 
-      pConfig%rCombinedDailyMSE = rMSE_d
-      pConfig%rCombinedDailyRMSE = sqrt(rMSE_d)
+      pStats%rCombinedDailyMSE = rMSE_d
+      pStats%rCombinedDailyRMSE = sqrt(rMSE_d)
 
       !df=df+(rf**4*rmse(i)**2/tmp1)
       r_edf=r_edf+(rN_h**4_T_REAL*pStratum(i)%rDailyMeanSquareError**2 &
@@ -791,7 +792,7 @@ function calculate_effective_degrees_of_freedom(pConfig,pStratum)  result(r_edf)
 
   end if
 
-    pConfig%rCombinedEffectiveDegreesFreedom = r_edf
+    pStats%rCombinedEffectiveDegreesFreedom = r_edf
 
   return
 
@@ -857,24 +858,25 @@ end function calculate_confidence_interval
 !----------------------------------------------------------------------
 
 
-subroutine save_best_config(pBestConfig, pConfig)
+subroutine save_best_result(pBestConfig, pConfig, pBestStrata, pStrata, pBestStats, pStats )
 
-  type (CONFIG_T), pointer :: pBestConfig ! pointer to data structure that contains
-                                          ! program options, flags, and other settings
-
-  type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
-                                      ! program options, flags, and other settings
+  type (CONFIG_T), pointer                       :: pBestConfig
+  type (CONFIG_T), pointer                       :: pConfig
+  type (STRATUM_STATS_T), dimension(:), pointer  :: pBestStrata
+  type (STRATUM_STATS_T), dimension(:), pointer  :: pStrata
+  type (COMBINED_STATS_T), pointer               :: pBestStats
+  type (COMBINED_STATS_T), pointer               :: pStats
 
   ! [ LOCALS ]
   logical (kind=T_LOGICAL) :: lIsBestConfig
 
   if ( pConfig%iMinimizationStatistic == MINIMIZE_MEAN_SQUARED_ERROR ) then
 
-    lIsBestConfig = pConfig%rCombinedMSE < pBestConfig%rCombinedMSE
+    lIsBestConfig = pStats%rCombinedMSE < pBestStats%rCombinedMSE
 
   elseif ( pConfig%iMinimizationStatistic == MINIMIZE_CONFIDENCE_INTERVAL ) then
 
-    lIsBestConfig = pConfig%rCombinedLoadCI < pBestConfig%rCombinedLoadCI
+    lIsBestConfig = pStats%rCombinedLoadCI < pBestStats%rCombinedLoadCI
 
   else
 
@@ -884,84 +886,84 @@ subroutine save_best_config(pBestConfig, pConfig)
 
   if( lIsBestConfig ) then
 
-    pBestConfig%sFlowFileName = pConfig%sFlowFileName
-    pBestConfig%iFlowFileFormat = pConfig%iFlowFileFormat
-    pBestConfig%sConcFileName = pConfig%sConcFileName
-    pBestConfig%sStartDate = pConfig%sStartDate
-    pBestConfig%sEndDate = pConfig%sEndDate
-    pBestConfig%iStartDate = pConfig%iStartDate
-    pBestConfig%iEndDate = pConfig%iEndDate
-    pBestConfig%iConcFileFormat = pConfig%iConcFileFormat
-    pBestConfig%sShortOutputFileName = pConfig%sShortOutputFileName
-    pBestConfig%sExtendedOutputFileName = pConfig%sExtendedOutputFileName
-    pBestConfig%iFlowUnitsCode = pConfig%iFlowUnitsCode
-    pBestConfig%iConcUnitsCode = pConfig%iConcUnitsCode
-    pBestConfig%iLoadUnitsCode = pConfig%iLoadUnitsCode
-    pBestConfig%sFlowUnits = pConfig%sFlowUnits
-    pBestConfig%sConcUnits = pConfig%sConcUnits
-    pBestConfig%sLoadUnits = pConfig%sLoadUnits
-    pBestConfig%iNumFlowPoints = pConfig%iNumFlowPoints
-    pBestConfig%iNumConcPoints = pConfig%iNumConcPoints
-    pBestConfig%iMaxNumStrata = pConfig%iMaxNumStrata
-    pBestConfig%iTotNumDays = pConfig%iTotNumDays
+    pBestConfig = pConfig
+    pBestStrata = pStrata
+    pBestStats = pStats
 
-    pBestConfig%rStratumCorrectedLoad = pConfig%rStratumCorrectedLoad
-    pBestConfig%rStratumMeanSquareError = pConfig%rStratumMeanSquareError
-    pBestConfig%rStratumLoadCI = pConfig%rStratumLoadCI
-
-    pBestConfig%iStrataBound = pConfig%iStrataBound
-
-    pBestConfig%rCombinedLoad = pConfig%rCombinedLoad
-    pBestConfig%rCombinedLoadAnnualized = pConfig%rCombinedLoadAnnualized
-    pBestConfig%rCombinedLoadAnnualizedCI = pConfig%rCombinedLoadAnnualizedCI
-
-    pBestConfig%rJackCombinedLoadAnnualized = pConfig%rJackCombinedLoadAnnualized
-    pBestConfig%rJackCombinedLoadAnnualizedCI = pConfig%rJackCombinedLoadAnnualizedCI
-
-    pBestConfig%rCombinedMSE = pConfig%rCombinedMSE
-    pBestConfig%rCombinedRMSE = pConfig%rCombinedRMSE
-
-    pBestConfig%rCombinedDailyLoad = pConfig%rCombinedDailyLoad
-    pBestConfig%rCombinedDailyMSE = pConfig%rCombinedDailyMSE
-    pBestConfig%rCombinedDailyRMSE = pConfig%rCombinedDailyRMSE
-
-    pBestConfig%rTotalFlow = pConfig%rTotalFlow
-    pBestConfig%rTotalFlowAnnualized = pConfig%rTotalFlowAnnualized
-
-    pBestConfig%rCombinedEffectiveDegreesFreedom = &
-       pConfig%rCombinedEffectiveDegreesFreedom
-    pBestConfig%rCombinedLoadCI = pConfig%rCombinedLoadCI
-
-    pBestConfig%iFuncCallNum =   pConfig%iFuncCallNum
+    ! pBestConfig%sFlowFileName = pConfig%sFlowFileName
+    ! pBestConfig%iFlowFileFormat = pConfig%iFlowFileFormat
+    ! pBestConfig%sConcFileName = pConfig%sConcFileName
+    ! pBestConfig%sStartDate = pConfig%sStartDate
+    ! pBestConfig%sEndDate = pConfig%sEndDate
+    ! pBestConfig%iStartDate = pConfig%iStartDate
+    ! pBestConfig%iEndDate = pConfig%iEndDate
+    ! pBestConfig%iConcFileFormat = pConfig%iConcFileFormat
+    ! pBestConfig%sShortOutputFileName = pConfig%sShortOutputFileName
+    ! pBestConfig%sExtendedOutputFileName = pConfig%sExtendedOutputFileName
+    ! pBestConfig%iFlowUnitsCode = pConfig%iFlowUnitsCode
+    ! pBestConfig%iConcUnitsCode = pConfig%iConcUnitsCode
+    ! pBestConfig%iLoadUnitsCode = pConfig%iLoadUnitsCode
+    ! pBestConfig%sFlowUnits = pConfig%sFlowUnits
+    ! pBestConfig%sConcUnits = pConfig%sConcUnits
+    ! pBestConfig%sLoadUnits = pConfig%sLoadUnits
+    ! pBestConfig%iNumFlowPoints = pConfig%iNumFlowPoints
+    ! pBestConfig%iNumConcPoints = pConfig%iNumConcPoints
+    ! pBestConfig%iMaxNumStrata = pConfig%iMaxNumStrata
+    ! pBestConfig%iTotNumDays = pConfig%iTotNumDays
+    !
+    ! pBestConfig%rStratumCorrectedLoad = pConfig%rStratumCorrectedLoad
+    ! pBestConfig%rStratumMeanSquareError = pConfig%rStratumMeanSquareError
+    ! pBestConfig%rStratumLoadCI = pConfig%rStratumLoadCI
+    !
+    ! pBestConfig%iStrataBound = pConfig%iStrataBound
+    !
+    ! pBestConfig%rCombinedLoad = pStats%rCombinedLoad
+    ! pBestConfig%rCombinedLoadAnnualized = pStats%rCombinedLoadAnnualized
+    ! pBestConfig%rCombinedLoadAnnualizedCI = pStats%rCombinedLoadAnnualizedCI
+    !
+    ! pBestConfig%rJackCombinedLoadAnnualized = pStats%rJackCombinedLoadAnnualized
+    ! pBestConfig%rJackCombinedLoadAnnualizedCI = pStats%rJackCombinedLoadAnnualizedCI
+    !
+    ! pBestConfig%rCombinedMSE = pStats%rCombinedMSE
+    ! pBestConfig%rCombinedRMSE = pStats%rCombinedRMSE
+    !
+    ! pBestConfig%rCombinedDailyLoad = pStats%rCombinedDailyLoad
+    ! pBestConfig%rCombinedDailyMSE = pStats%rCombinedDailyMSE
+    ! pBestConfig%rCombinedDailyRMSE = pStats%rCombinedDailyRMSE
+    !
+    ! pBestConfig%rTotalFlow = pStats%rTotalFlow
+    ! pBestConfig%rTotalFlowAnnualized = pStats%rTotalFlowAnnualized
+    !
+    ! pBestConfig%rCombinedEffectiveDegreesFreedom = &
+    !    pStats%rCombinedEffectiveDegreesFreedom
+    ! pBestConfig%rCombinedLoadCI = pStats%rCombinedLoadCI
+    !
+    ! pBestConfig%iFuncCallNum =   pConfig%iFuncCallNum
 
   end if
 
-end subroutine save_best_config
+end subroutine save_best_result
 
 !----------------------------------------------------------------------
 
-subroutine reset_configuration_stats(pConfig)
+subroutine reset_combined_stats(pStats)
 
-  type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
-                                      ! program options, flags, and other settings
+  type (COMBINED_STATS_T), pointer :: pStats
 
-    pConfig%rCombinedLoad = rZERO
-    pConfig%rCombinedLoadAnnualized = rZERO
-    pConfig%rCombinedLoadAnnualizedCI = rZERO
-    pConfig%rCombinedMSE = rZERO
-    pConfig%rCombinedRMSE = rZERO
+    pStats%rCombinedLoad = rZERO
+    pStats%rCombinedLoadAnnualized = rZERO
+    pStats%rCombinedLoadAnnualizedCI = rZERO
+    pStats%rCombinedMSE = rZERO
+    pStats%rCombinedRMSE = rZERO
 
-    pConfig%rCombinedDailyLoad = rZERO
-    pConfig%rCombinedDailyMSE = rZERO
-    pConfig%rCombinedDailyRMSE = rZERO
+    pStats%rCombinedDailyLoad = rZERO
+    pStats%rCombinedDailyMSE = rZERO
+    pStats%rCombinedDailyRMSE = rZERO
 
-    pConfig%rCombinedEffectiveDegreesFreedom = &
-       rZERO
-    pConfig%rCombinedLoadCI = 1.E+27
+    pStats%rCombinedEffectiveDegreesFreedom = rZERO
+    pStats%rCombinedLoadCI = 1.E+27
 
-!    pConfig%iFuncCallNum = rZERO
-
-end subroutine reset_configuration_stats
+end subroutine reset_combined_stats
 
 !----------------------------------------------------------------------
 

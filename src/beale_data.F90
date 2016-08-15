@@ -17,6 +17,9 @@ implicit none
   type (FLOW_T), dimension(:), pointer           :: pFlow
   type (CONC_T), dimension(:), pointer           :: pConc
   type (STRATUM_STATS_T), dimension(:), pointer  :: pStrata
+  type (STRATUM_STATS_T), dimension(:), pointer  :: pBestStrata
   type (STRATUM_STATS_T), pointer                :: pStratum
+  type (COMBINED_STATS_T), pointer               :: pStats
+  type (COMBINED_STATS_T), pointer               :: pBestStats
 
 end module beale_data
