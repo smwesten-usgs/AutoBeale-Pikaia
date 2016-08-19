@@ -3,7 +3,7 @@ add_executable( autobeale_pikaia
       beale.F90
       run_pikaia.F90
       input.F90
-      pikaia.F90
+      pikaia_module.F90
       pikaia_function.F90
       main.F90
       output.F90

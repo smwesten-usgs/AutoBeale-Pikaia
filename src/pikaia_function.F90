@@ -1,7 +1,7 @@
 module pikaia_function
 
 use types
-use pikaia
+use pikaia_module
 use beale
 use beale_data
 use strata
@@ -28,6 +28,7 @@ function evaluate_fitness_function( iNumBounds, x )  result(rValue)
 
   ! [ LOCALS ]
   integer (kind=T_INT) :: i,j
+  real (kind=T_REAL)   :: genome_values( iNumBounds )
 
   integer (kind=T_INT) :: iBeginDate, iDeltaDate, iStatus
 
@@ -47,15 +48,6 @@ function evaluate_fitness_function( iNumBounds, x )  result(rValue)
 
   iNumInvalidStrata = 0
 
-  iCurrentNumberOfBounds = ubound( x, 1)
-  iCurrentNumberOfStrata = iCurrentNumberOfBounds + 1
-
-  ! make sure all accumulators are zeroed out prior to calculations
-  call reset_strata_stats(pStrata)
-
-  iBeginDate = MINVAL(pFlow%iJulianDay)
-  iDeltaDate = MAXVAL(pFlow%iJulianDay) - MINVAL(pFlow%iJulianDay)
-
   ! keep track of how many times this routine has been called
   pConfig%iFuncCallNum = pConfig%iFuncCallNum + 1
 
@@ -64,24 +56,13 @@ function evaluate_fitness_function( iNumBounds, x )  result(rValue)
 
 !  print *, x(1:n)
 
-  call ssort(x, iCurrentNumberOfBounds)
+  call ssort(x, iNumBounds)
 
-!  print *, x(1:n)
+  genome_values = x(1:iNumBounds)
 
-  pStrata(1)%iStartDate = pConfig%iStartDate
-  pStrata( iCurrentNumberOfStrata )%iEndDate = pConfig%iEndDate
+  call create_new_strata_from_genome( pConfig, genome_values, pStrata )
 
-  ! assign strata bounds
-  do i=1, iCurrentNumberOfBounds
-    iStrataBoundary = iBeginDate + iDeltaDate * x(i)
-    ! assign strata boundaries
-    pStrata(i)%iEndDate = iStrataBoundary
-    pStrata(i+1)%iStartDate = iStrataBoundary + 1
-    pConfig%rPikaiaXValues(i) = x(i)
-  end do
-
-  pConfig%iMaxNumStrata = iCurrentNumberOfStrata
-  call calculate_and_combine_stratum_loads( pConfig, pStrata, pStats, pFlow, pConc, iCurrentNumberOfStrata )
+  call calculate_and_combine_stratum_loads( pConfig, pStrata, pStats, pFlow, pConc )
 
   ! Pikaia *MAXIMIZES* the fitness function (objective function); need to return a values
   ! that gets LARGER as the MSE decreases.

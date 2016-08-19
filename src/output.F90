@@ -15,8 +15,10 @@ contains
 
     type (FLOW_T), dimension(:), pointer          :: pFlow
     type (CONC_T), dimension(:), pointer          :: pConc
-    type (STRATUM_STATS_T), dimension(:), pointer :: pBestStrata
+    type (STRATA_T), pointer                      :: pBestStrata
     type (COMBINED_STATS_T), pointer              :: pBestStats
+
+    type (STRATUM_STATS_T), pointer               :: pStratum
 
     character(len=256) :: s_WD = ""
     character(len=256) :: s_RD = ""
@@ -137,12 +139,12 @@ contains
       'colnames(conc)<-c("Date","Conc")'
 
     write(LU_R_SCRIPT,*) &
-      'num_strata<-'//trim(int2char(pBestConfig%iMaxNumStrata))
+      'num_strata<-'//trim(int2char(pBestStrata%iCurrentNumberOfStrata))
 
     write(LU_R_SCRIPT,FMT=*) &
-      'bound<-data.frame(Date=rep(0,',pBestConfig%iMaxNumStrata-1,'))'
+      'bound<-data.frame(Date=rep(0,',pBestStrata%iCurrentNumberOfStrata-1,'))'
     write(LU_R_SCRIPT,FMT=*) &
-      'strata<-data.frame(Date=rep(0,',pBestConfig%iMaxNumStrata,'))'
+      'strata<-data.frame(Date=rep(0,',pBestStrata%iCurrentNumberOfStrata,'))'
 
     do i=1,size(pFlow%rFlow)
       write(LU_R_SCRIPT,&
@@ -160,9 +162,11 @@ contains
               / CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor))
     end do
 
-    do i=1,pBestConfig%iMaxNumStrata - 1
+    do i=1,pBestStrata%iCurrentNumberOfStrata - 1
 
-      call gregorian_date(pBestStrata(i)%iEndDate, iYear, iMonth, iDay)
+      pStratum => pBestStrata%pStratum(i)
+
+      call gregorian_date(pStratum%iEndDate, iYear, iMonth, iDay)
 
       write(LU_R_SCRIPT,&
          FMT="('bound$Date[',a,']<-',a1,i4.4,'-',i2.2,'-',i2.2,a1)") &
@@ -185,7 +189,7 @@ contains
       write(LU_R_SCRIPT,FMT=*) &
         'conc$Date<-as.Date(conc$Date)'
 
-      if(pBestConfig%iMaxNumStrata>1) then
+      if(pBestStrata%iCurrentNumberOfStrata>1) then
         write(LU_R_SCRIPT,FMT=*) &
           'bound$Date<-as.Date(bound$Date)'
       end if
@@ -203,7 +207,7 @@ contains
       write(LU_R_SCRIPT,*) &
         "strata$Date[num_strata]<-mean(flow$Date[flow$Date>bound$Date[num_strata-1]])"
 
-      do j=2,pBestConfig%iMaxNumStrata-1
+      do j=2,pBestStrata%iCurrentNumberOfStrata-1
         write(LU_R_SCRIPT, &
           FMT="('strata$Date[',a,']<-mean(flow$Date[flow$Date>bound$Date['," &
           //"a,'] & flow$Date<=bound$Date[',a,']])')") &
@@ -307,11 +311,13 @@ contains
       write(LU_R_SCRIPT,FMT=*) &
         'abline(v=bound$Date+1.5,col="red",lty=3,lwd=2)'
 
-      do j=1,pBestConfig%iMaxNumStrata
+      do j=1,pBestStrata%iCurrentNumberOfStrata
+
+        pStratum => pBestStrata%pStratum(j)
 
         write(LU_R_SCRIPT,FMT= *) &
           'text(x=strata$Date['//trim(int2char(j))//'],y=0.97*max(dummy),' &
-          //sQt//trim(ADJUSTL(sf_L_units(pConfig,pBestStrata(j)%rStratumCorrectedLoad ))) &
+          //sQt//trim(ADJUSTL(sf_L_units(pConfig,pStratum%rStratumCorrectedLoad ))) &
           //sQt//',srt=90,cex=0.7,col='//sQt//'red'//sQt//')'
 
       end do
@@ -370,11 +376,12 @@ contains
   end subroutine write_R_script
 
 
-  subroutine print_short_report(pConfig, pConc, pStats)
+  subroutine print_short_report(pConfig, pConc, pStats, pStrata)
 
     type (CONFIG_T), pointer             :: pConfig
     type (CONC_T), dimension(:), pointer :: pConc
     type (COMBINED_STATS_T), pointer     :: pStats
+    type (STRATA_T), pointer             :: pStrata
 
     ! [ LOCALS ]
     character (len=1)   :: sTab = CHAR(9)
@@ -390,7 +397,7 @@ contains
           trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,    &
           trim(pConc(1)%sConstituentName), sTab,                                &
           trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab,         &
-          pConfig%iMaxNumStrata,sTab,pStats%rCombinedLoad                      &
+          pStrata%iCurrentNumberOfStrata,sTab,pStats%rCombinedLoad                      &
             / LOAD_UNITS(pConfig%iLoadUnitsCode)%rConversionFactor,sTab,        &
           trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab,                 &
           pStats%rCombinedLoadCI                                               &
@@ -415,7 +422,7 @@ contains
   !        trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,&
   !        trim(pConc(1)%sConstituentName), sTab, &
   !        trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab, &
-  !        pConfig%iMaxNumStrata,sTab,pStats%rCombinedLoad,sTab, &
+  !        pStrata%iCurrentNumberOfStrata,sTab,pStats%rCombinedLoad,sTab, &
   !        trim(LOAD_UNITS(pConfig%iLoadUnitsCode)%sUnits),sTab, &
   !        pStats%rCombinedLoadCI, sTab, &
   !        pStats%rCombinedLoadAnnualized, sTab, &
@@ -439,21 +446,25 @@ contains
 
     !! [ ARGUMENTS ]
     type (CONFIG_T), pointer                       :: pConfig
-    type (STRATUM_STATS_T), dimension(:), pointer  :: pStrata
+    type (STRATA_T), pointer                       :: pStrata
     type (COMBINED_STATS_T), pointer               :: pStats
 
-    integer (kind=T_INT), intent(in) :: iLU
-    integer (kind=T_INT) :: i
-    integer (kind=T_INT) :: iSYear, iSMonth, iSDay
-    integer (kind=T_INT) :: iEYear, iEMonth, iEDay
+    ! [ LOCALS ]
+    type (STRATUM_STATS_T), pointer     :: pStratum
+    integer (kind=T_INT), intent(in)    :: iLU
+    integer (kind=T_INT)                :: i
+    integer (kind=T_INT)                :: iSYear, iSMonth, iSDay
+    integer (kind=T_INT)                :: iEYear, iEMonth, iEDay
 
     write(iLU,FMT=*) ' SUMMARY OVER ALL STRATA:'
-    write(iLU,FMT="('    NUMBER OF STRATA:',i4)") pConfig%iMaxNumStrata
+    write(iLU,FMT="('    NUMBER OF STRATA:',i4)") pStrata%iCurrentNumberOfStrata
 
-    do i=1,pConfig%iMaxNumStrata
+    do i=1, pStrata%iCurrentNumberOfStrata
 
-      call gregorian_date(pStrata(i)%iStartDate, iSYear, iSMonth, iSDay)
-      call gregorian_date(pStrata(i)%iEndDate, iEYear, iEMonth, iEDay)
+      pStratum => pStrata%pStratum(i)
+
+      call gregorian_date(pStratum%iStartDate, iSYear, iSMonth, iSDay)
+      call gregorian_date(pStratum%iEndDate, iEYear, iEMonth, iEDay)
 
       write(iLU,&
        FMT="(t7,i3,t15,' -- begins on:',3x,i2.2,'/',i2.2,'/'," &
@@ -503,7 +514,7 @@ contains
 
     write(iLU,FMT=*) repeat("~",80)
     write(iLU,FMT="(' ===> END OF SUMMARY for calculation with ',i3,' strata')") &
-      pConfig%iMaxNumStrata
+      pStrata%iCurrentNumberOfStrata
     write(iLU,FMT=*) repeat("~",80)
 
     write(iLU,FMT=*) " "

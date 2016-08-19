@@ -498,7 +498,7 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStrata)
 
       type (FLOW_T), dimension(:), pointer :: pFlow
       type (CONC_T), dimension(:), pointer :: pConc
-      type (STRATUM_STATS_T),dimension(:), pointer :: pStrata
+      type (STRATA_T), pointer             :: pStrata
 
       ! this routine lifted almost verbatim from Dr. Peter Richard's
       ! AutoBeale code
@@ -519,167 +519,163 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStrata)
         sy, sy2, sx2y, s1, s2, s3, tval1, tval2, frac, tval, ci, rf, rn, &
         mse1, mse2, ce1, ce2
 
-      real(kind=T_REAL),dimension(pConfig%iMaxNumStrata) :: &
+      real(kind=T_REAL),dimension(pStrata%iCurrentNumberOfStrata) :: &
          flowes, rmse, r, nf
 
       integer (kind=T_INT) :: l,i, j, ndays
 
+      type (STRATUM_STATS_T), pointer  :: pStratum
+
       ! define ndays = TOTAL number of flow records
       ndays = SIZE(pFlow%rFlow)
 
-      do j=1,pConfig%iMaxNumStrata
+      do j=1, pStrata%iCurrentNumberOfStrata
 
-      cumfl=0.0d0
-      cumse=0.0d0
-      df=0.0d0
+        pStratum => pStrata%pStratum(j)
 
-      r(j)=0.0d0
-      suml=0.0d0
-      suml2=0.0d0
-      sumf=0.0d0
-      sumf2=0.0d0
-      sumfl=0.0d0
-      sumx3=0.0d0
-      sumx2y=0.0d0
-      sumxy2=0.0d0
-      nf(j)=0
-      flowmu=0.0d0
+        cumfl=0.0d0
+        cumse=0.0d0
+        df=0.0d0
 
-      do l=1,ndays
-        if (pFlow(l)%iJulianDay<=pStrata(j)%iEndDate .and. &
-            pFlow(l)%iJulianDay>=pStrata(j)%iStartDate) then
-          nf(j)=nf(j)+1 ! # daily flows in strata
-          flowmu=flowmu+pFlow(l)%rFlow
-          ! search for matching sample record
-          do i=1,SIZE(pConc%rFlow)
-            if(pFlow(l)%iJulianDay == pConc(i)%iJulianDay) then
-              templ=pConc(i)%rDailyLoad
-              r(j)=r(j)+1.0d0
-              suml=suml+templ
-              suml2=suml2+templ*templ
-              sumf=sumf+pConc(i)%rFlow
-              sumf2=sumf2+pConc(i)%rFlow*pConc(i)%rFlow
-              sumfl=sumfl+pConc(i)%rFlow*templ
-            end if
-          end do
-        else
-          cycle
-        end if
-      end do
+        r(j)=0.0d0
+        suml=0.0d0
+        suml2=0.0d0
+        sumf=0.0d0
+        sumf2=0.0d0
+        sumfl=0.0d0
+        sumx3=0.0d0
+        sumx2y=0.0d0
+        sumxy2=0.0d0
+        nf(j)=0
+        flowmu=0.0d0
 
-      fpc=1.0d0
-      flowmu=flowmu/REAL(nf(j),kind=T_REAL)  ! average flow over the entire STRATUM
-      avflow=sumf/r(j)                       ! avg flow for SAMPLED DAYS
-      avload=suml/r(j)                       ! AVG LOAD on SAMPLED DAYS
+        do l=1,ndays
+          if (pFlow(l)%iJulianDay <= pStratum%iEndDate .and. &
+              pFlow(l)%iJulianDay >= pStratum%iStartDate) then
+            nf(j)=nf(j)+1 ! # daily flows in strata
+            flowmu=flowmu+pFlow(l)%rFlow
+            ! search for matching sample record
+            do i=1,SIZE(pConc%rFlow)
+              if(pFlow(l)%iJulianDay == pConc(i)%iJulianDay) then
+                templ=pConc(i)%rDailyLoad
+                r(j)=r(j)+1.0d0
+                suml=suml+templ
+                suml2=suml2+templ*templ
+                sumf=sumf+pConc(i)%rFlow
+                sumf2=sumf2+pConc(i)%rFlow*pConc(i)%rFlow
+                sumfl=sumfl+pConc(i)%rFlow*templ
+              end if
+            end do
+          else
+            cycle
+          end if
+        end do
+
+        fpc=1.0d0
+        flowmu=flowmu/REAL(nf(j),kind=T_REAL)  ! average flow over the entire STRATUM
+        avflow=sumf/r(j)                       ! avg flow for SAMPLED DAYS
+        avload=suml/r(j)                       ! AVG LOAD on SAMPLED DAYS
 
 !      print *, "ndays: ",ndays,"  nf(j): ",nf(j),"  r: ",r
 !      print *, "Flowmu: ",flowmu,"  avflow: ",avflow,"  avload: ",avload
 
-      write(LU_STD_OUT,FMT=*) ' ===> OLD AUTOBEALE OUTPUT <==='
+        write(LU_STD_OUT,FMT=*) ' ===> OLD AUTOBEALE OUTPUT <==='
 
-      write(LU_STD_OUT,FMT="(t2,'strata:',i3,2x,'ndays:',i4,2x,'nf(j):',f6.0,2x,'r:',f6.0)") &
-        j, ndays, nf(j), r(j)
-      write(LU_STD_OUT,FMT="(t2,'flowmu:',f12.3,2x,'avflow:',f12.3,2x,'avload:',f12.3)") &
-        flowmu, avflow, avload
+        write(LU_STD_OUT,FMT="(t2,'strata:',i3,2x,'ndays:',i4,2x,'nf(j):',f6.0,2x,'r:',f6.0)") &
+          j, ndays, nf(j), r(j)
+        write(LU_STD_OUT,FMT="(t2,'flowmu:',f12.3,2x,'avflow:',f12.3,2x,'avload:',f12.3)") &
+          flowmu, avflow, avload
 
-      do l=1,ndays        !now calculate the third order terms
-        if (pFlow(l)%iJulianDay<=pStrata(j)%iEndDate .and. &
-            pFlow(l)%iJulianDay>=pStrata(j)%iStartDate)then
-          do i=1,SIZE(pConc%rFlow)
-            if(pFlow(l)%iJulianDay == pConc(i)%iJulianDay) then
-              sumx3=sumx3 + (pConc(i)%rFlow-avflow)**3
-              sumx2y=sumx2y + (pConc(i)%rFlow-avflow)**2 * (pConc(i)%rDailyLoad-avload)
-              sumxy2=sumxy2 + (pConc(i)%rFlow-avflow) * (pConc(i)%rDailyLoad-avload)**2
-            end if
-          end do
+        do l=1,ndays        !now calculate the third order terms
+          if (pFlow(l)%iJulianDay<=pStratum%iEndDate .and. &
+              pFlow(l)%iJulianDay>=pStratum%iStartDate)then
+            do i=1,SIZE(pConc%rFlow)
+              if(pFlow(l)%iJulianDay == pConc(i)%iJulianDay) then
+                sumx3=sumx3 + (pConc(i)%rFlow-avflow)**3
+                sumx2y=sumx2y + (pConc(i)%rFlow-avflow)**2 * (pConc(i)%rDailyLoad-avload)
+                sumxy2=sumxy2 + (pConc(i)%rFlow-avflow) * (pConc(i)%rDailyLoad-avload)**2
+              end if
+            end do
+          else
+            cycle
+          end if
+        end do
+
+        if(r(j) .gt. 1.0d0) then
+          sxy=(sumfl-(r(j)*avflow*avload))/(r(j)-1.0d0)
+          sx2=(sumf2-(r(j)*avflow*avflow))/(r(j)-1.0d0)
+          sy2=(suml2-(r(j)*avload*avload))/(r(j)-1.0d0)
+          if (avload.gt.0.0d0) then
+            sx2y=(sumx2y/(r(j)-1.0d0))
+            sxy2=(sumxy2/(r(j)-1.0d0))
+            sx3= (sumx3/(r(j)-1.0d0))
+          else
+            sx3=0.0d0
+            sx2y=0.0d0
+            sxy2=0.0d0
+          end if
         else
-          cycle
-        end if
-      end do
-
-      if(r(j) .gt. 1.0d0) then
-        sxy=(sumfl-(r(j)*avflow*avload))/(r(j)-1.0d0)
-        sx2=(sumf2-(r(j)*avflow*avflow))/(r(j)-1.0d0)
-        sy2=(suml2-(r(j)*avload*avload))/(r(j)-1.0d0)
-        if (avload.gt.0.0d0) then
-          sx2y=(sumx2y/(r(j)-1.0d0))
-          sxy2=(sumxy2/(r(j)-1.0d0))
-          sx3= (sumx3/(r(j)-1.0d0))
-        else
-          sx3=0.0d0
+          sxy=0.0d0
+          sx2=0.0d0
+          sy2=0.0d0
           sx2y=0.0d0
           sxy2=0.0d0
+          sx3=0.0d0
         end if
-      else
-        sxy=0.0d0
-        sx2=0.0d0
-        sy2=0.0d0
-        sx2y=0.0d0
-        sxy2=0.0d0
-        sx3=0.0d0
-      end if
 
-!      write(LU_STD_OUT,FMT="(t4,'sx2 (orig):',t20,F14.3)") sx2
-!      write(LU_STD_OUT,FMT="(t4,'sy2 (orig):',t20,F14.3)") sy2
-!      write(LU_STD_OUT,FMT="(t4,'sxy (orig):',t20,F14.3)") sxy
-!      write(LU_STD_OUT,FMT="(t4,'sx2y (orig):',t20,F14.3)") sx2y
-!      write(LU_STD_OUT,FMT="(t4,'sx3 (orig):',t20,F14.3)") sx3
-!      write(LU_STD_OUT,FMT="(t4,'sxy2 (orig):',t20,F14.3)") sxy2
+        if (avload.gt.0.0d0) then
+          sx2y=sx2y/(avflow**2*avload)
+          sxy2=sxy2/(avflow*avload**2)
+          sx3= sx3/(avflow**3)
+        end if
 
-      if (avload.gt.0.0d0) then
-        sx2y=sx2y/(avflow**2*avload)
-        sxy2=sxy2/(avflow*avload**2)
-        sx3= sx3/(avflow**3)
-      end if
+        if (avload > rNEAR_ZERO) then            !whew! some conc data
+          f1=1.0d0+((fpc/r(j))*(sxy/(avload*avflow)))
+          f2=1.0d0+((fpc/r(j))*(sx2/(avflow*avflow)))
+          flowes(j)=avload*(flowmu/avflow)*(f1/f2)
+          s1=sx2/(avflow*avflow)
+          s2=sy2/(avload*avload)
+          s3=sxy/(avflow*avload)
+          f1=(fpc/r(j))*(s1+s2-s3-s3)
+          f2=(fpc**2/r(j)**2)*(2.0d0*s1*s1-4.0d0*s1*s3+s3*s3+s1*s2)
+          f3=((2.0d0*fpc/r(j))/nf(j)) * (sx3-2.0d0*sx2y+sxy2)
 
-      if (avload > rNEAR_ZERO) then            !whew! some conc data
-        f1=1.0d0+((fpc/r(j))*(sxy/(avload*avflow)))
-        f2=1.0d0+((fpc/r(j))*(sx2/(avflow*avflow)))
-        flowes(j)=avload*(flowmu/avflow)*(f1/f2)
-        s1=sx2/(avflow*avflow)
-        s2=sy2/(avload*avload)
-        s3=sxy/(avflow*avload)
-        f1=(fpc/r(j))*(s1+s2-s3-s3)
-        f2=(fpc**2/r(j)**2)*(2.0d0*s1*s1-4.0d0*s1*s3+s3*s3+s1*s2)
-        f3=((2.0d0*fpc/r(j))/nf(j)) * (sx3-2.0d0*sx2y+sxy2)
+          rmse(j)=(avload*flowmu/avflow)**2*(f1+f2+f3)
 
-        rmse(j)=(avload*flowmu/avflow)**2*(f1+f2+f3)
+          write(*,FMT="('RMSE (orig):',f16.3)") rmse(j)
+          print *, '   (this is the daily MSE for a stratum)'
+          print *, ' '
 
-        write(*,FMT="('RMSE (orig):',f16.3)") rmse(j)
-        print *, '   (this is the daily MSE for a stratum)'
-        print *, ' '
+          tmp1=flowmu/avflow
+          tmp2=avload*tmp1
+          tmp3=flowes(j)-tmp2
+          tmp4=rmse(j)*r(j)
+        else                        !gads! no conc data in this stratum
+          flowes(j)=0.0d0
+          rmse(j)=0.0d0
+          tmp1=flowmu/avflow
+          tmp2=0.0d0
+          tmp3=0.0d0
+          tmp4=0.0d0
+        end if
 
+      end do  ! end of loop over each strata member
 
-        tmp1=flowmu/avflow
-        tmp2=avload*tmp1
-        tmp3=flowes(j)-tmp2
-        tmp4=rmse(j)*r(j)
-      else                        !gads! no conc data in this stratum
-        flowes(j)=0.0d0
-        rmse(j)=0.0d0
-        tmp1=flowmu/avflow
-        tmp2=0.0d0
-        tmp3=0.0d0
-        tmp4=0.0d0
-      end if
+      do i=1,pStrata%iCurrentNumberOfStrata
 
-    end do
+        pStratum => pStrata%pStratum(i)
 
-      do i=1,pConfig%iMaxNumStrata
         tmp1=r(i)-1.0_T_REAL
 
-        rf = REAL(pStrata(i)%iNumDays,kind=T_REAL)
+        rf = REAL(pStratum%iNumDays,kind=T_REAL)
         rn = REAL(pConfig%iTotNumDays,kind=T_REAL)
 
         cumfl=cumfl+flowes(i)*(rf/rn)        ! eqn. H in Baum (1982)
-!        print *,'cumse,rmse(i),rf,rn'
-!        print *,cumse,rmse(i),rf,rn
-!        print *, ' '
         cumse=cumse+(rmse(i)*rf*rf/(rn*rn))   ! eqn. I in Baum (1982)
         df=df+(rf**4*rmse(i)**2/tmp1)
       enddo
 
-      if(pConfig%iMaxNumStrata .gt. 1) then
+      if( pStrata%iCurrentNumberOfStrata .gt. 1) then
         if (df.eq.0) df=-1
          df=(cumse*rn*rn)*(cumse*rn*rn)/df
          ce1=cumfl*365.0_T_REAL
@@ -687,13 +683,6 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStrata)
          mse1=cumse*133225.0_T_REAL  ! 133225 = 365**2
          mse2=cumse*0.133225_T_REAL  ! this is a rough translation of
       end if                         ! eqn. M in Baum (1982)
-
-
-!      print *,'pConfig%iMaxNumStrata,tmp1,cumfl,cumse,df, rn'
-!
-!      write(*,FMT="(i3,1x,20(f14.3,1x))") pConfig%iMaxNumStrata,tmp1,&
-!         cumfl,cumse,df, rn
-
 
 ! calculate the 95% confidence interval half-width (i.e. the �number)
       if (df.ge.30) then
@@ -704,7 +693,7 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStrata)
         frac=df-INT(df)
         tval=tval1+frac*(tval2-tval1)
       end if
-      if (pConfig%iMaxNumStrata.gt.1) then
+      if (pStrata%iCurrentNumberOfStrata.gt.1) then
         ci=tval*sqrt(mse2)
       else
         ci=tval*sqrt(rmse(1)*0.133225_T_REAL)
@@ -712,7 +701,7 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStrata)
 
       write(LU_STD_OUT,fmt="(a)") 'OLD AUTOBEALE:     load         mse                df         ci'
 
-      if (pConfig%iMaxNumStrata.gt.1) then
+      if (pStrata%iCurrentNumberOfStrata.gt.1) then
         write (LU_STD_OUT,11) 'OLD AUTOBEALE:',ce2*1000.,mse2*1.e+06, &
            df,ci*1000.
       else
@@ -729,15 +718,17 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStrata)
 
 !-----------------------------------------------------------------------
 
-function calculate_effective_degrees_of_freedom(pConfig,pStratum, pStats)  result(r_edf)
+function calculate_effective_degrees_of_freedom(pConfig,pStrata, pStats)  result(r_edf)
 
   type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                       ! program options, flags, and other settings
 
-  type (STRATUM_STATS_T), dimension(:), pointer :: pStratum
+  type (STRATA_T), pointer                      :: pStrata
   type (COMBINED_STATS_T), pointer              :: pStats
 
-  integer (kind=T_INT) :: i
+  ! [ LOCALS ]
+  integer (kind=T_INT)              :: indx
+  type (STRATUM_STATS_T), pointer   :: pStratum
 
   real (kind=T_REAL) :: r_edf,rNsamp_minus_one,rN_h,rN,rL_d,rMSE_d
 
@@ -748,47 +739,48 @@ function calculate_effective_degrees_of_freedom(pConfig,pStratum, pStats)  resul
   rMSE_d = rZERO
 
 
-  call Assert(LOGICAL(pConfig%iMaxNumStrata>0,kind=T_LOGICAL), &
+  call Assert(LOGICAL( pStrata%iCurrentNumberOfStrata > 0,kind=T_LOGICAL), &
     'Function calculate_effective_degrees_of_freedom called with df < 1')
 
-  if(pConfig%iMaxNumStrata==1) then
+  if( pStrata%iCurrentNumberOfStrata == 1) then
 
-    r_edf = REAL(pStratum(1)%iNumSamples,kind=T_REAL)-1.0_T_REAL  !r
-    rMSE_d = pStratum(1)%rDailyMeanSquareError
+    r_edf = REAL(pStrata%pStratum(1)%iNumSamples,kind=T_REAL)-1.0_T_REAL  !r
+    rMSE_d = pStrata%pStratum(1)%rDailyMeanSquareError
     pStats%rCombinedDailyMSE = rMSE_d
 
   else
 
-    do i=1,pConfig%iMaxNumStrata
-!    tmp1=r(i)-1.0_T_REAL
-      rNsamp_minus_one = REAL(pStratum(i)%iNumSamples,kind=T_REAL)-1.0_T_REAL  !r
+    do indx=1, pStrata%iCurrentNumberOfStrata
 
-      rN_h = REAL(pStratum(i)%iNumDays,kind=T_REAL)    !rf
+      pStratum => pStrata%pStratum(indx)
+
+      rNsamp_minus_one = REAL(pStratum%iNumSamples, kind=T_REAL) - 1.0_T_REAL
+
+      rN_h = REAL(pStratum%iNumDays,kind=T_REAL)    !rf
       rN = REAL(pConfig%iTotNumDays,kind=T_REAL)  !rn
 
 !    cumfl=cumfl+flowes(i)*(rf/rn)        ! eqn. H in Baum (1982)
 
       ! eqn. H in Baum (1982)
-      rL_d = rL_d + pStratum(i)%rDailyCorrectedLoadEstimate*(rN_h/rN)
+      rL_d = rL_d + pStratum%rDailyCorrectedLoadEstimate*(rN_h/rN)
 
 !    cumse=cumse+(rmse(i)*rf*rf/(rn*rn))
 
       ! eqn. I in Baun (1982)
       ! This is the estimated total DAILY mean square error of the
       ! combined strata
-      rMSE_d = rMSE_d + pStratum(i)%rDailyMeanSquareError * rN_h**2 / rN**2
+      rMSE_d = rMSE_d + pStratum%rDailyMeanSquareError * rN_h**2 / rN**2
 
       pStats%rCombinedDailyMSE = rMSE_d
       pStats%rCombinedDailyRMSE = sqrt(rMSE_d)
 
       !df=df+(rf**4*rmse(i)**2/tmp1)
-      r_edf=r_edf+(rN_h**4_T_REAL*pStratum(i)%rDailyMeanSquareError**2 &
-          / rNsamp_minus_one)
+      r_edf=r_edf+(rN_h**4_T_REAL*pStratum%rDailyMeanSquareError**2 / rNsamp_minus_one)
 
     enddo
 
     if (r_edf.eq.0) r_edf=-1
-    r_edf=(rMSE_d*rN**2)**2/r_edf
+    r_edf = (rMSE_d * rN**2 ) **2 /r_edf
 
   end if
 
@@ -830,8 +822,6 @@ function calculate_confidence_interval(rDegreesFreedom, rMSE)  result(r_CI)
 
   r_CI = rTval * sqrt(rMSE)
 
-  return
-
   ! ! calculate the 95% confidence interval half-width (i.e. the �number)
   !       if (df.ge.30) then
   !       tval=1.96d0+2.4d0/df
@@ -862,8 +852,8 @@ subroutine save_best_result(pBestConfig, pConfig, pBestStrata, pStrata, pBestSta
 
   type (CONFIG_T), pointer                       :: pBestConfig
   type (CONFIG_T), pointer                       :: pConfig
-  type (STRATUM_STATS_T), dimension(:), pointer  :: pBestStrata
-  type (STRATUM_STATS_T), dimension(:), pointer  :: pStrata
+  type (STRATA_T), pointer                       :: pBestStrata
+  type (STRATA_T), pointer                       :: pStrata
   type (COMBINED_STATS_T), pointer               :: pBestStats
   type (COMBINED_STATS_T), pointer               :: pStats
 
@@ -887,7 +877,8 @@ subroutine save_best_result(pBestConfig, pConfig, pBestStrata, pStrata, pBestSta
   if( lIsBestConfig ) then
 
     pBestConfig = pConfig
-    pBestStrata = pStrata
+    pBestStrata%pStratum = pStrata%pStratum
+    pBestStrata%iCurrentNumberOfStrata = pStrata%iCurrentNumberOfStrata
     pBestStats = pStats
 
     ! pBestConfig%sFlowFileName = pConfig%sFlowFileName
@@ -908,7 +899,7 @@ subroutine save_best_result(pBestConfig, pConfig, pBestStrata, pStrata, pBestSta
     ! pBestConfig%sLoadUnits = pConfig%sLoadUnits
     ! pBestConfig%iNumFlowPoints = pConfig%iNumFlowPoints
     ! pBestConfig%iNumConcPoints = pConfig%iNumConcPoints
-    ! pBestConfig%iMaxNumStrata = pConfig%iMaxNumStrata
+    ! pBestStrata%iCurrentNumberOfStrata = pStrata%iCurrentNumberOfStrata
     ! pBestConfig%iTotNumDays = pConfig%iTotNumDays
     !
     ! pBestConfig%rStratumCorrectedLoad = pConfig%rStratumCorrectedLoad

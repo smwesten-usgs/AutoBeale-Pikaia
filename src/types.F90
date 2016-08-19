@@ -167,6 +167,11 @@ module types
     real (kind=T_REAL) :: rS_q3
   end type STRATUM_STATS_T
 
+  type, public :: STRATA_T
+    integer (kind=T_INT)                            :: iCurrentNumberOfStrata
+    type ( STRATUM_STATS_T ), dimension(:), pointer :: pStratum
+  end type STRATA_T
+
   type, public :: COMBINED_STATS_T
     real (kind=T_REAL) :: rTotalFlow                 = 0.
     real (kind=T_REAL) :: rCombinedLoad              = 0.
@@ -595,6 +600,22 @@ subroutine gregorian_date(iJD, iYear, iMonth, iDay)
   return
 
 end subroutine gregorian_date
+
+!--------------------------------------------------------------------------------------------------
+
+function pretty_date( iJD )   result( sDateTxt )
+
+  integer (kind=T_INT)            :: iJD
+  character (len=10)              :: sDateTxt
+
+  ![ LOCALS ]
+  integer (kind=T_INT) :: iMonth, iDay, iYear
+
+  call gregorian_date(iJD,iYear,iMonth,iDay)
+
+  write( sDateTxt, fmt="(i2.2,'/',i2.2,'/',i4.4)") iMonth, iDay, iYear
+
+end function pretty_date
 
 !--------------------------------------------------------------------------
 

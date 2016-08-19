@@ -26,23 +26,7 @@ program main
 
   real (kind=T_REAL) :: rThetaHat, rSum1,rAvg1,rSum2,rAvg2, rSE_jack, rSE_CI
 
-  type(JACKKNIFE_T), dimension(:),pointer :: pJackknife
-
-  ALLOCATE (pConfig, STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not allocate memory for program control data structure")
-
-  ALLOCATE (pBestConfig, STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not allocate memory for copy of program control data structure")
-
-  allocate ( pStats, stat=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not allocate memory for copy of combined stats data structure")
-
-  allocate ( pBestStats, stat=iStat)
-    call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-      "Could not allocate memory for copy of combined stats data structure")
+  call initialize_configuration_variables()
 
   iCommandCount = COMMAND_ARGUMENT_COUNT()
 
@@ -62,51 +46,64 @@ program main
     stop
   end if
 
-  do i=1,iCommandCount,2
+  i=1
+
+  do
     call GET_COMMAND_ARGUMENT(i,sBuf)
+
     if(trim(sBuf)=="-filelist") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       sFileList = trim(sBuf)
 
     elseif(trim(sBuf)=="-flow") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       pConfig%sFlowFileName = trim(sBuf)
       pConfig%iFlowFileFormat = iFLOW_FILE_FORMAT_USGS
 
     elseif(trim(sBuf)=="-flow_old") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       pConfig%sFlowFileName = trim(sBuf)
       pConfig%iFlowFileFormat = iFLOW_FILE_FORMAT_ORIGINAL
 
     elseif(trim(sBuf)=="-conc") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       pConfig%sConcFileName = trim(sBuf)
       pConfig%iConcFileFormat = iCONC_FILE_FORMAT_USGS
 
     elseif(trim(sBuf)=="-conc_old") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       pConfig%sConcFileName = trim(sBuf)
       pConfig%iConcFileFormat = iCONC_FILE_FORMAT_ORIGINAL
 
     elseif(trim(sBuf)=="-max_strata") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       read(sBuf,FMT=*) iValue
       pConfig%iMaxEvalStrata = iValue
 
     elseif(trim(sBuf)=="-basedir") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       read(sBuf,FMT=*) pConfig%sBaseDirName
 
     elseif(trim(sBuf)=="-flowdir") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       read(sBuf,FMT=*) pConfig%sFlowDirName
 
     elseif(trim(sBuf)=="-concdir") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       read(sBuf,FMT=*) pConfig%sConcDirName
 
     elseif(trim(sBuf)=="-resultsdir") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       read(sBuf,FMT=*) pConfig%sResultsDirName
 
     elseif(trim(sBuf)=="-jackknife") then
@@ -122,7 +119,8 @@ program main
       pConfig%lJackknife=lTRUE
 
     elseif(trim(sBuf)=="-load_units") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       if(trim(sBuf)=="Kg" .or. trim(sBuf)=="kg") then
         pConfig%iLoadUnitsCode = iKILOGRAMS_PER_YEAR
       elseif(trim(sBuf)=="MT" .or. trim(sBuf)=="mt") then
@@ -133,7 +131,8 @@ program main
       end if
 
     elseif(trim(sBuf)=="-conc_units") then
-      call GET_COMMAND_ARGUMENT(i+1,sBuf)
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
       if(trim(sBuf)=="mg/L" .or. trim(sBuf)=="mg/l") then
         pConfig%iConcUnitsCode = iMILLIGRAMS_PER_LITER
       elseif(trim(sBuf)=="ug/L" .or. trim(sBuf)=="ug/l") then
@@ -151,6 +150,12 @@ program main
       call Assert(lFALSE, &
        "Unknown program option: "//trim(sBuf))
     end if
+
+    if ( i < iCommandCount ) then
+      i = i + 1
+    else
+      exit
+    endif
 
   end do
 
@@ -182,415 +187,387 @@ program main
 
   main_loop: do
 
-  if(iNumFiles>0) then
-    print *, '>> Attempting to read filenames from a list file'
-    read(LU_FILELIST,*,iostat=iStat) pConfig%sFlowFileName, &
-       pConfig%sConcFileName
-    call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-      "Problem reading flow and concentration filenames from filelist.")
-    print *, 'Flow file: ',pConfig%sFlowFileName
-    print *, 'Concentration file: ',pConfig%sConcFileName
-  end if
-
-  sRecord = pConfig%sFlowFileName
-
-  call find_dot(sRecord, sOutputFilePrefix)
-
-!----------------------------------------------------------------------
-! Set configuration options
-!----------------------------------------------------------------------
-
-!  pConfig%sFlowFileName = "Q_Kalamazoo_CAL05.txt"
-!  pConfig%sConcFileName = "TotPhos_Kalamazoo_CAL05.txt"
-!  pConfig%sFlowFileName = "flowfile.txt"
-!  pConfig%sConcFileName = "concfile.txt"
-
-!  pConfig%sFlowFileName = "ROCKFLOW.DAT"
-!  pConfig%sConcFileName = "ROCKNO23_4yr.DAT"
-
-
-  pConfig%sShortOutputFileName = "beale_summary.txt"
-
-!----------------------------------------------------------------------
-! Open data files
-!----------------------------------------------------------------------
-
-
-  sConcFile = trim(pConfig%sBaseDirName)//trim(pConfig%sConcDirName) &
-     //trim(pConfig%sConcFileName)
-
-  sFlowFile = trim(pConfig%sBaseDirName)//trim(pConfig%sFlowDirName) &
-     //trim(pConfig%sFlowFileName)
-
-  sResultsDir = trim(pConfig%sBaseDirName)//trim(pConfig%sResultsDirName)
-
-  open (UNIT=LU_CONCDAT,iostat=iStat, &
-    file=trim(sConcFile),status='OLD')
-
-  if(iStat /= 0) then
-    print *, "Could not open concentration file:", &
-      trim(sConcFile)
-    stop
-  end if
-
-  open (UNIT=LU_FLOWDAT,iostat=iStat, &
-    file=trim(sFlowFile),status='OLD')
-
-  if(iStat /= 0) then
-    print *, "Could not open flow file:", &
-      trim(sFlowFile)
-    stop
-  end if
-
-  if ( len_trim( sResultsDir)==0 ) then
-    open (UNIT=LU_STATS_OUT,iostat=iStat, file="beale_stats.txt",status='REPLACE')
-  else
-    open (UNIT=LU_STATS_OUT,iostat=iStat, file=trim(sResultsDir)//"/beale_stats.txt",status='REPLACE')
-  endif
-
-  call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-    "Could not open output stats file")
-!
-!----------------------------------------------------------------------
-! Open files for output
-!----------------------------------------------------------------------
-
-  if ( len_trim( sResultsDir )==0 ) then
-    open (LU_SHORT_RPT,file=trim(pConfig%sShortOutputFileName), ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
-  else
-    open (LU_SHORT_RPT,file=trim(sResultsDir)//"\"//trim(pConfig%sShortOutputFileName), &
-      ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
-  endif
-
-  if(iStat /= 0) then
-    print *, "Could not open summary output file: ", &
-      trim(pConfig%sShortOutputFileName)
-    stop
-  end if
-
-  if ( len_trim( sResultsDir )==0 ) then
-    open (UNIT=LU_LOADS_OUT,iostat=iStat, file="flow_conc_load_daily.txt",access='APPEND')
-  else
-    open (UNIT=LU_LOADS_OUT,iostat=iStat, &
-      file=trim(sResultsDir)//"\flow_conc_load_daily.txt",access='APPEND')
-  endif
-
-  call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-    "Could not open flow, conc, and load result file")
-
-  if ( len_trim( sResultsDir )==0 ) then
-    open (LU_JACKKNIFE_OUT,file="jackknife_results.txt", ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
-  else
-    open (LU_JACKKNIFE_OUT,file=trim(sResultsDir)//"\"//"jackknife_results.txt", &
-      ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
-  endif
-
-  call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-    "Could not open jackknife output file")
-
-
-  if(FTELL(LU_LOADS_OUT)==0) then
-
-      write(LU_LOADS_OUT,FMT="(500a)") &
-        'TribName',',', &
-        'Date',',', 'Fraction_of_year',',',&
-        'Flow',',','Conc',',','Load'
-
-  end if
-
-  if(FTELL(LU_SHORT_RPT)==0) then
-
-      write(LU_SHORT_RPT,FMT="(500a)") &
-        'AutoBealeRunDate', sTab, 'FlowFileName',sTab, 'ConcFileName',sTab,&
-        'Constituent', sTab, &
-        'StartDate', sTab, 'EndDate', sTab, &
-        'MaxNumStrata',sTab,'CombinedLoad',sTab, &
-        'Units',sTab,'CombinedLoadCI', sTab,&
-        'AnnualizedLoad', sTab, &
-        'AnnualizedLoadCI', sTab, &
-        'AnnualizedLoad-Jackknife', sTab, &
-        'AnnualizedLoadCI-Jackknife', sTab, &
-        'AnnualizedFlow',sTab, &
-        'CombinedMSE', sTab,'CombinedRMSE',&
-        sTab,'CombinedEffectiveDegreesFreedom', sTab, &
-        'FuncCallNum'
-
-  end if
-
-  if(FTELL(LU_JACKKNIFE_OUT)==0) then
-
-      write(LU_JACKKNIFE_OUT,FMT="(500a)") &
-        'TribName',sTab,'Constituent',sTab, &
-        'StartDate',sTab,'EndDate',sTab,'Load', &
-        sTab,'Units'
-
-  end if
-
-!  open (LU_PIKAIA_OUT,file='Pikaia_output.txt', &
-!    STATUS='REPLACE',FORM='FORMATTED',iostat=iStat)
-!
-!  if(iStat /= 0) then
-!    print *, "Could not open summary output file:", &
-!      trim(pConfig%sShortOutputFileName)
-!    stop
-!  end if
-
-!----------------------------------------------------------------------
-! Read through flow file to determine how many records are present
-!----------------------------------------------------------------------
-
-  i=0
-  do
-    read ( unit=LU_FLOWDAT, fmt="(a256)", iostat=iStat ) sRecord
-
-    if ( iStat < 0 ) exit     ! EOF mark
-    call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Terminating due to error reading FLOW file" )
-    if ( sRecord(1:1) == "#" ) cycle      ! Ignore comment lines
-    if(  sRecord(1:9) == "agency_cd" ) then
-      ! read another line and throw it away
-      read ( unit=LU_FLOWDAT, fmt="(a256)", iostat=iStat ) sRecord
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-           "Terminating due to error reading FLOW file" )
-	  cycle      ! Ignore header information
+    if(iNumFiles>0) then
+      print *, '>> Attempting to read filenames from a list file'
+      read(LU_FILELIST,*,iostat=iStat) pConfig%sFlowFileName, &
+         pConfig%sConcFileName
+      call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
+        "Problem reading flow and concentration filenames from filelist.")
+      print *, 'Flow file: ',pConfig%sFlowFileName
+      print *, 'Concentration file: ',pConfig%sConcFileName
     end if
 
-    i=i+1
-  end do
+    sRecord = pConfig%sFlowFileName
 
-  pConfig%iNumFlowPoints = i
+    call find_dot(sRecord, sOutputFilePrefix)
 
-!----------------------------------------------------------------------
-! Read through concentration file to see how many records are present
-!----------------------------------------------------------------------
+  !----------------------------------------------------------------------
+  ! Set configuration options
+  !----------------------------------------------------------------------
 
-  i=0
-  do
-    read ( unit=LU_CONCDAT, fmt="(a256)", iostat=iStat ) sRecord
+  !  pConfig%sFlowFileName = "Q_Kalamazoo_CAL05.txt"
+  !  pConfig%sConcFileName = "TotPhos_Kalamazoo_CAL05.txt"
+  !  pConfig%sFlowFileName = "flowfile.txt"
+  !  pConfig%sConcFileName = "concfile.txt"
 
-    if ( iStat < 0 ) exit     ! EOF mark
-    call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Terminating due to error reading CONCENTRATION file" )
-    if ( sRecord(1:1) == "#" ) cycle      ! Ignore comment lines
+  !  pConfig%sFlowFileName = "ROCKFLOW.DAT"
+  !  pConfig%sConcFileName = "ROCKNO23_4yr.DAT"
 
-    i=i+1
-  end do
 
-  pConfig%iNumConcPoints = i
+    pConfig%sShortOutputFileName = "beale_summary.txt"
 
-  rewind(LU_CONCDAT)
-  rewind(LU_FLOWDAT)
+  !----------------------------------------------------------------------
+  ! Open data files
+  !----------------------------------------------------------------------
 
-!----------------------------------------------------------------------
-! Now allocate required memory for concentration and flow data
-!----------------------------------------------------------------------
 
-  ALLOCATE (pFlow(pConfig%iNumFlowPoints), STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not allocate memory for FLOW data structure")
-  write(LU_STD_OUT,FMT="('Allocated memory for ',i4,' flow records')") &
-     pConfig%iNumFlowPoints
+    sConcFile = trim(pConfig%sBaseDirName)//trim(pConfig%sConcDirName) &
+       //trim(pConfig%sConcFileName)
 
-  ALLOCATE (pConc(pConfig%iNumConcPoints), STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not allocate memory for CONCENTRATION data structure")
-  write(LU_STD_OUT,FMT="('Allocated memory for ',i4,' concentration records')") &
-     pConfig%iNumConcPoints
+    sFlowFile = trim(pConfig%sBaseDirName)//trim(pConfig%sFlowDirName) &
+       //trim(pConfig%sFlowFileName)
 
-  ALLOCATE (pJackknife(pConfig%iNumConcPoints), STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not allocate memory for jackknife results")
-  write(LU_STD_OUT,FMT="('Allocated memory to hold ',i4,' jackknife results')") &
-     pConfig%iNumConcPoints
+    sResultsDir = trim(pConfig%sBaseDirName)//trim(pConfig%sResultsDirName)
 
-  ALLOCATE (pStrata(iMAX_STRATA), STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-    "Could not allocate memory for BEALE STATS data array")
+    open (UNIT=LU_CONCDAT,iostat=iStat, &
+      file=trim(sConcFile),status='OLD')
 
-  ALLOCATE (pBestStrata(iMAX_STRATA), STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-    "Could not allocate memory for BEALE STATS data array")
+    if(iStat /= 0) then
+      print *, "Could not open concentration file:", &
+        trim(sConcFile)
+      stop
+    end if
 
-  call read_data (pConfig, pFlow, pConc)
+    open (UNIT=LU_FLOWDAT,iostat=iStat, &
+      file=trim(sFlowFile),status='OLD')
 
-  call clean_concentration_data(pFlow,pConc)
+    if(iStat /= 0) then
+      print *, "Could not open flow file:", &
+        trim(sFlowFile)
+      stop
+    end if
 
-  ! update this value once the input concentration file has been culled of
-  ! duplicates
-  pConfig%iNumConcPoints = size(pConc)
+    if ( len_trim( sResultsDir)==0 ) then
+      open (UNIT=LU_STATS_OUT,iostat=iStat, file="beale_stats.txt",status='REPLACE')
+    else
+      open (UNIT=LU_STATS_OUT,iostat=iStat, file=trim(sResultsDir)//"/beale_stats.txt",status='REPLACE')
+    endif
 
-  call clean_flow_data(pFlow)
+    call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
+      "Could not open output stats file")
+  !
+  !----------------------------------------------------------------------
+  ! Open files for output
+  !----------------------------------------------------------------------
 
-  ! *******************************************************************
-  ! Now, finally open extended output file
-  ! *******************************************************************
+    if ( len_trim( sResultsDir )==0 ) then
+      open (LU_SHORT_RPT,file=trim(pConfig%sShortOutputFileName), ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
+    else
+      open (LU_SHORT_RPT,file=trim(sResultsDir)//"\"//trim(pConfig%sShortOutputFileName), &
+        ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
+    endif
 
-  iBMonth = pFlow(1)%iMonth
-  iBDay = pFlow(1)%iDay
-  iBYear = pFlow(1)%iYear
+    if(iStat /= 0) then
+      print *, "Could not open summary output file: ", &
+        trim(pConfig%sShortOutputFileName)
+      stop
+    end if
 
-  iEMonth = pFlow(size(pFlow%rFlow))%iMonth
-  iEDay = pFlow(size(pFlow%rFlow))%iDay
-  iEYear = pFlow(size(pFlow%rFlow))%iYear
+    if ( len_trim( sResultsDir )==0 ) then
+      open (UNIT=LU_LOADS_OUT,iostat=iStat, file="flow_conc_load_daily.txt",access='APPEND')
+    else
+      open (UNIT=LU_LOADS_OUT,iostat=iStat, &
+        file=trim(sResultsDir)//"\flow_conc_load_daily.txt",access='APPEND')
+    endif
 
-  sSite = trim(pConc(1)%sTribName)
-  sConstituent = trim(pConc(1)%sConstituentName)
+    call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
+      "Could not open flow, conc, and load result file")
 
-  call CleanUp (sSite)
-  call CleanUp(sConstituent)
+    if ( len_trim( sResultsDir )==0 ) then
+      open (LU_JACKKNIFE_OUT,file="jackknife_results.txt", ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
+    else
+      open (LU_JACKKNIFE_OUT,file=trim(sResultsDir)//"\"//"jackknife_results.txt", &
+        ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
+    endif
 
-  write(pConfig%sExtendedOutputFileName, &
-  FMT="('LOAD_',a,'_',a,'_',i4.4,i2.2,i2.2,'-'," &
-      //"i4.4,i2.2,i2.2,'.txt')") &
-    trim(sSite),trim(sConstituent),iBYear,iBMonth,iBDay, &
-    iEYear,iEMonth,iEDay
+    call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
+      "Could not open jackknife output file")
 
-  if( len_trim( sResultsDir ) == 0 ) then
-    open (UNIT=LU_LONG_RPT, FILE=trim(pConfig%sExtendedOutputFileName), &
-      STATUS='REPLACE', FORM='FORMATTED',iostat=iStat)
-  else
-    open (UNIT=LU_LONG_RPT,&
-      FILE=trim(sResultsDir)//"\"//trim(pConfig%sExtendedOutputFileName), &
-      STATUS='REPLACE', FORM='FORMATTED',iostat=iStat)
-  endif
 
-  if(iStat /= 0) then
-    print *, "Could not open extended output file:",trim(pConfig%sExtendedOutputFileName)
-    stop
-  end if
+    if(FTELL(LU_LOADS_OUT)==0) then
 
-  call calculate_daily_loads(pFlow,pConc,pConfig, pStats)
+        write(LU_LOADS_OUT,FMT="(500a)") &
+          'TribName',',', &
+          'Date',',', 'Fraction_of_year',',',&
+          'Flow',',','Conc',',','Load'
 
-  call calculate_and_report_monthly_stats(LU_LONG_RPT,pFlow,pConc,pConfig)
+    end if
 
-  if(pConfig%lJackknife) then
+    if(FTELL(LU_SHORT_RPT)==0) then
 
-    write(LU_STD_OUT,"(/,'Performing jackknife, flow file = ',a)") &
-      trim(pConfig%sFlowFileName)
+        write(LU_SHORT_RPT,FMT="(500a)") &
+          'AutoBealeRunDate', sTab, 'FlowFileName',sTab, 'ConcFileName',sTab,&
+          'Constituent', sTab, &
+          'StartDate', sTab, 'EndDate', sTab, &
+          'MaxNumStrata',sTab,'CombinedLoad',sTab, &
+          'Units',sTab,'CombinedLoadCI', sTab,&
+          'AnnualizedLoad', sTab, &
+          'AnnualizedLoadCI', sTab, &
+          'AnnualizedLoad-Jackknife', sTab, &
+          'AnnualizedLoadCI-Jackknife', sTab, &
+          'AnnualizedFlow',sTab, &
+          'CombinedMSE', sTab,'CombinedRMSE',&
+          sTab,'CombinedEffectiveDegreesFreedom', sTab, &
+          'FuncCallNum'
 
-    iNumIterations = pConfig%iNumConcPoints
+    end if
 
-    pJackknife%rEstimate = rZERO
-    pJackknife%rEstimate_SQ = rZERO
+    if(FTELL(LU_JACKKNIFE_OUT)==0) then
 
-    do j=1,iNumIterations
+        write(LU_JACKKNIFE_OUT,FMT="(500a)") &
+          'TribName',sTab,'Constituent',sTab, &
+          'StartDate',sTab,'EndDate',sTab,'Load', &
+          sTab,'Units'
+
+    end if
+
+  !  open (LU_PIKAIA_OUT,file='Pikaia_output.txt', &
+  !    STATUS='REPLACE',FORM='FORMATTED',iostat=iStat)
+  !
+  !  if(iStat /= 0) then
+  !    print *, "Could not open summary output file:", &
+  !      trim(pConfig%sShortOutputFileName)
+  !    stop
+  !  end if
+
+  !----------------------------------------------------------------------
+  ! Read through flow file to determine how many records are present
+  !----------------------------------------------------------------------
+
+    i=0
+    do
+      read ( unit=LU_FLOWDAT, fmt="(a256)", iostat=iStat ) sRecord
+
+      if ( iStat < 0 ) exit     ! EOF mark
+      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+         "Terminating due to error reading FLOW file" )
+      if ( sRecord(1:1) == "#" ) cycle      ! Ignore comment lines
+      if(  sRecord(1:9) == "agency_cd" ) then
+        ! read another line and throw it away
+        read ( unit=LU_FLOWDAT, fmt="(a256)", iostat=iStat ) sRecord
+        call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+             "Terminating due to error reading FLOW file" )
+  	  cycle      ! Ignore header information
+      end if
+
+      i=i+1
+    end do
+
+    pConfig%iNumFlowPoints = i
+
+  !----------------------------------------------------------------------
+  ! Read through concentration file to see how many records are present
+  !----------------------------------------------------------------------
+
+    i=0
+    do
+      read ( unit=LU_CONCDAT, fmt="(a256)", iostat=iStat ) sRecord
+
+      if ( iStat < 0 ) exit     ! EOF mark
+      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+         "Terminating due to error reading CONCENTRATION file" )
+      if ( sRecord(1:1) == "#" ) cycle      ! Ignore comment lines
+
+      i=i+1
+    end do
+
+    pConfig%iNumConcPoints = i
+
+    rewind(LU_CONCDAT)
+    rewind(LU_FLOWDAT)
+
+    call initialize_beale_variables()
+
+    call read_data (pConfig, pFlow, pConc)
+
+    call clean_concentration_data(pFlow,pConc)
+
+    ! update this value once the input concentration file has been culled of
+    ! duplicates
+    pConfig%iNumConcPoints = size(pConc)
+
+    call clean_flow_data(pFlow)
+
+    ! *******************************************************************
+    ! Now, finally open extended output file
+    ! *******************************************************************
+
+    iBMonth = pFlow(1)%iMonth
+    iBDay = pFlow(1)%iDay
+    iBYear = pFlow(1)%iYear
+
+    iEMonth = pFlow(size(pFlow%rFlow))%iMonth
+    iEDay = pFlow(size(pFlow%rFlow))%iDay
+    iEYear = pFlow(size(pFlow%rFlow))%iYear
+
+    sSite = trim(pConc(1)%sTribName)
+    sConstituent = trim(pConc(1)%sConstituentName)
+
+    call CleanUp (sSite)
+    call CleanUp(sConstituent)
+
+    write(pConfig%sExtendedOutputFileName, &
+    FMT="('LOAD_',a,'_',a,'_',i4.4,i2.2,i2.2,'-'," &
+        //"i4.4,i2.2,i2.2,'.txt')") &
+      trim(sSite),trim(sConstituent),iBYear,iBMonth,iBDay, &
+      iEYear,iEMonth,iEDay
+
+    if( len_trim( sResultsDir ) == 0 ) then
+      open (UNIT=LU_LONG_RPT, FILE=trim(pConfig%sExtendedOutputFileName), &
+        STATUS='REPLACE', FORM='FORMATTED',iostat=iStat)
+    else
+      open (UNIT=LU_LONG_RPT,&
+        FILE=trim(sResultsDir)//"\"//trim(pConfig%sExtendedOutputFileName), &
+        STATUS='REPLACE', FORM='FORMATTED',iostat=iStat)
+    endif
+
+    if(iStat /= 0) then
+      print *, "Could not open extended output file:",trim(pConfig%sExtendedOutputFileName)
+      stop
+    end if
+
+    call calculate_daily_loads(pFlow,pConc,pConfig, pStats)
+
+    call calculate_and_report_monthly_stats(LU_LONG_RPT,pFlow,pConc,pConfig)
+
+    if(pConfig%lJackknife) then
+
+      write(LU_STD_OUT,"(/,'Performing jackknife, flow file = ',a)") &
+        trim(pConfig%sFlowFileName)
+
+      iNumIterations = pConfig%iNumConcPoints
+
+      pJackknife%rEstimate = rZERO
+      pJackknife%rEstimate_SQ = rZERO
+
+      do j=1,iNumIterations
+
+        pConc%lInclude = lTRUE
+
+        ! one by one, eliminate data points and rerun the whole shootin match
+        pConc(j)%lInclude = lFALSE
+
+        pConfig%iNumConcPoints = COUNT(pConc%lInclude)
+
+        ! subroutine "pikaia_driver" takes care of iterating over multiple strata
+        ! to determine the optimum stratification scheme
+        call pikaia_driver(pConfig, pBestConfig, pStrata, pBestStrata, pStats, pBestStats )
+
+        pJackknife(j)%rEstimate = pBestStats%rCombinedLoadAnnualized
+        pJackknife(j)%rEstimate_SQ = pBestStats%rCombinedLoadAnnualized**2
+
+        write(LU_STD_OUT, &
+          "('  jackknife iteration ',i3,' of ',i3,' : annual load = ',a)") &
+           j,iNumIterations,trim(sf_L_units(pConfig,pJackknife(j)%rEstimate))
+
+
+
+        write(LU_JACKKNIFE_OUT,FMT="(4a,2(i4.4,'-',i2.2,'-',i2.2,a),a)") &
+            trim(sSite), sTab,trim(sConstituent),sTab, &
+            iBYear,iBMonth,iBDay,sTab,iEYear,iEMonth,iEDay,sTab, &
+            trim(sf_L_units(pConfig,pJackknife(j)%rEstimate))
+
+        call reset_combined_stats(pStats)
+
+      end do
+
+      ! eq. 11.4, Efron and Tibshirani, p. 141
+      rThetaHat = SUM(pJackknife%rEstimate) / REAL(iNumIterations)
+
+      rSum1 = rZERO
+
+      do j=1,iNumIterations
+        rSum1 = rSum1 + (pJackknife(j)%rEstimate - rThetaHat)**2
+      end do
+
+      ! eq. 11.5, Efron and Tibshirani, p. 141
+      ! includes an "inflation factor": (n-1) / n, because the jackknife
+      ! deviations tend to be smaller than the bootstrap variations.
+      rSE_jack = sqrt( (REAL(iNumIterations) - 1_T_REAL ) *rSum1 &
+                  / REAL(iNumIterations) )
+
+      rSE_CI = calculate_confidence_interval(REAL(iNumIterations,kind=T_REAL)-1., &
+        (REAL(iNumIterations) - 1_T_REAL ) * rSum1 / REAL(iNumIterations))
+
+      ! now run one more time in non-Jackknife mode
+      call reset_combined_stats(pStats)
+      pConc%lInclude = lTRUE
+      pConfig%lJackknife=lFALSE
+      pConfig%iNumConcPoints = size(pConc)
+
+      pStats%rJackCombinedLoadAnnualizedCI = rSE_CI
+      pStats%rJackCombinedLoadAnnualized = rThetaHat
+
+      pBestStats%rJackCombinedLoadAnnualizedCI = rSE_CI
+      pBestStats%rJackCombinedLoadAnnualized = rThetaHat
+
+      call pikaia_driver(pConfig, pBestConfig, pStrata, pBestStrata, pStats, pBestStats )
+
+      write(LU_LONG_RPT,*) ''
+
+      write(LU_LONG_RPT,*) 'JACKKNIFE ESTIMATES:'
+      write(LU_LONG_RPT,FMT="(3(a,1x))") pConfig%sFlowFileName, &
+          pConfig%sStartDate, pConfig%sEndDate
+      write(LU_LONG_RPT,FMT="(i4,2x,a)") &
+        (j,sf_L_units(pConfig,pJackknife(j)%rEstimate),j=1,iNumIterations)
+      write(LU_LONG_RPT,FMT="('Theta Hat:',f18.4)") rThetaHat
+      write(LU_LONG_RPT,FMT="('Std Err:',f18.4)") rSE_jack
+      write(LU_LONG_RPT,FMT="('CI:',f18.4)") rSE_CI
+
+      pConfig%lJackknife=lTRUE
+      pBestConfig%lJackknife=lTRUE
+
+    else  ! we are not computing jackknife estimates; simple single pass through the Beale calc
 
       pConc%lInclude = lTRUE
 
-      ! one by one, eliminate data points and rerun the whole shootin match
-      pConc(j)%lInclude = lFALSE
-
-      pConfig%iNumConcPoints = COUNT(pConc%lInclude)
+      pConfig%iNumConcPoints = size(pConc)
 
       ! subroutine "pikaia_driver" takes care of iterating over multiple strata
       ! to determine the optimum stratification scheme
-      call pikaia_driver(pConfig, pBestConfig)
+      call pikaia_driver(pConfig, pBestConfig, pStrata, pBestStrata, pStats, pBestStats )
 
-      pJackknife(j)%rEstimate = pBestStats%rCombinedLoadAnnualized
-      pJackknife(j)%rEstimate_SQ = pBestStats%rCombinedLoadAnnualized**2
+    end if
 
-      write(LU_STD_OUT, &
-        "('  jackknife iteration ',i3,' of ',i3,' : annual load = ',a)") &
-         j,iNumIterations,trim(sf_L_units(pConfig,pJackknife(j)%rEstimate))
+    call print_short_report(pBestConfig,pConc, pBestStats, pBestStrata)
+    call write_R_script(pConfig,pBestConfig,pFlow,pConc, pBestStrata, pBestStats)
 
-
-
-      write(LU_JACKKNIFE_OUT,FMT="(4a,2(i4.4,'-',i2.2,'-',i2.2,a),a)") &
-          trim(sSite), sTab,trim(sConstituent),sTab, &
-          iBYear,iBMonth,iBDay,sTab,iEYear,iEMonth,iEDay,sTab, &
-          trim(sf_L_units(pConfig,pJackknife(j)%rEstimate))
-
-      call reset_combined_stats(pStats)
-
-    end do
-
-    ! eq. 11.4, Efron and Tibshirani, p. 141
-    rThetaHat = SUM(pJackknife%rEstimate) / REAL(iNumIterations)
-
-    rSum1 = rZERO
-
-    do j=1,iNumIterations
-      rSum1 = rSum1 + (pJackknife(j)%rEstimate - rThetaHat)**2
-    end do
-
-    ! eq. 11.5, Efron and Tibshirani, p. 141
-    ! includes an "inflation factor": (n-1) / n, because the jackknife
-    ! deviations tend to be smaller than the bootstrap variations.
-    rSE_jack = sqrt( (REAL(iNumIterations) - 1_T_REAL ) *rSum1 &
-                / REAL(iNumIterations) )
-
-    rSE_CI = calculate_confidence_interval(REAL(iNumIterations,kind=T_REAL)-1., &
-      (REAL(iNumIterations) - 1_T_REAL ) * rSum1 / REAL(iNumIterations))
-
-    ! now run one more time in non-Jackknife mode
     call reset_combined_stats(pStats)
-    pConc%lInclude = lTRUE
-    pConfig%lJackknife=lFALSE
-    pConfig%iNumConcPoints = size(pConc)
 
-    pStats%rJackCombinedLoadAnnualizedCI = rSE_CI
-    pStats%rJackCombinedLoadAnnualized = rThetaHat
+    iNumFiles = iNumFiles - 1
 
-    pBestStats%rJackCombinedLoadAnnualizedCI = rSE_CI
-    pBestStats%rJackCombinedLoadAnnualized = rThetaHat
+    close(LU_FLOWDAT)
+    close(LU_CONCDAT)
+    close(LU_LONG_RPT)
+    close(LU_SHORT_RPT)
+    close(LU_STATS_OUT)
+    close(LU_JACKKNIFE_OUT)
+    close(LU_LOADS_OUT)
+  !  close(LU_ECHO_OUT)
 
-    call pikaia_driver(pConfig, pBestConfig)
+    DEALLOCATE (pJackknife, STAT=iStat)
+    call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+       "Could not deallocate memory for jackknife results")
 
-    write(LU_LONG_RPT,*) ''
+    DEALLOCATE (pFlow, STAT=iStat)
+    call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+       "Could not deallocate memory for FLOW data structure")
 
-    write(LU_LONG_RPT,*) 'JACKKNIFE ESTIMATES:'
-    write(LU_LONG_RPT,FMT="(3(a,1x))") pConfig%sFlowFileName, &
-        pConfig%sStartDate, pConfig%sEndDate
-    write(LU_LONG_RPT,FMT="(i4,2x,a)") &
-      (j,sf_L_units(pConfig,pJackknife(j)%rEstimate),j=1,iNumIterations)
-    write(LU_LONG_RPT,FMT="('Theta Hat:',f18.4)") rThetaHat
-    write(LU_LONG_RPT,FMT="('Std Err:',f18.4)") rSE_jack
-    write(LU_LONG_RPT,FMT="('CI:',f18.4)") rSE_CI
+    DEALLOCATE (pConc, STAT=iStat)
+    call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+       "Could not deallocate memory for CONCENTRATION data structure")
 
-    pConfig%lJackknife=lTRUE
-    pBestConfig%lJackknife=lTRUE
-
-  else  ! we are not computing jackknife estimates; simple single pass through the Beale calc
-
-    pConc%lInclude = lTRUE
-
-    pConfig%iNumConcPoints = size(pConc)
-
-    ! subroutine "pikaia_driver" takes care of iterating over multiple strata
-    ! to determine the optimum stratification scheme
-    call pikaia_driver(pConfig, pBestConfig)
-
-  end if
-
-  call print_short_report(pBestConfig,pConc, pBestStats)
-  call write_R_script(pConfig,pBestConfig,pFlow,pConc, pBestStrata, pBestStats)
-
-  call reset_combined_stats(pStats)
-
-  iNumFiles = iNumFiles - 1
-
-  close(LU_FLOWDAT)
-  close(LU_CONCDAT)
-  close(LU_LONG_RPT)
-  close(LU_SHORT_RPT)
-  close(LU_STATS_OUT)
-  close(LU_JACKKNIFE_OUT)
-  close(LU_LOADS_OUT)
-!  close(LU_ECHO_OUT)
-
-  DEALLOCATE (pJackknife, STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not deallocate memory for jackknife results")
-
-  DEALLOCATE (pFlow, STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not deallocate memory for FLOW data structure")
-
-  DEALLOCATE (pConc, STAT=iStat)
-  call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-     "Could not deallocate memory for CONCENTRATION data structure")
-
-  if(iNumFiles<=0) exit
+    if(iNumFiles<=0) exit
 
   end do main_loop
 

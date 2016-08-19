@@ -1,16 +1,65 @@
 module strata
 
-  use beale, only  : calculate_effective_degrees_of_freedom,     &
-                     calculate_confidence_interval,              &
-                     calculate_Beale_load
-
+  use beale, only       : calculate_effective_degrees_of_freedom,     &
+                          calculate_confidence_interval,              &
+                          calculate_Beale_load
+  use beale_data, only  : pFlow
   use types
   use units
   implicit none
 
 contains
 
-subroutine find_initial_strata(pConfig,pConc, n, x)
+subroutine create_new_strata_from_genome( pConfig, x, pStrata )
+
+  type (CONFIG_T), pointer                        :: pConfig
+  real (kind=T_REAL), intent(inout)               :: x(:)
+  type (STRATA_T), pointer                        :: pStrata
+
+  ! [ LOCALS ]
+  type (STRATUM_STATS_T), pointer       :: pStratum
+  integer (kind=T_INT)                  :: indx
+  integer (kind=T_INT)                  :: iBeginDate
+  integer (kind=T_INT)                  :: iEndDate
+  integer (kind=T_INT)                  :: iDeltaDate
+  integer (kind=T_INT)                  :: iStrataBoundary
+
+  iBeginDate = MINVAL( pFlow%iJulianDay )
+  iDeltaDate = MAXVAL( pFlow%iJulianDay ) - MINVAL( pFlow%iJulianDay )
+  iEndDate   = MAXVAL( pFlow%iJulianDay )
+
+  ! target the first of the active strata; assign startdate
+  pStratum => pStrata%pStratum(1)
+  pStratum%iStartDate = pConfig%iStartDate
+
+  ! target the last of the active strata; assign enddate
+  pStratum => pStrata%pStratum( pStrata%iCurrentNumberOfStrata )
+  pStratum%iEndDate = pConfig%iEndDate
+
+  ! assign strata bounds
+  do indx=1, ubound( x, 1 )
+    iStrataBoundary = pConfig%iStartDate + iDeltaDate * x(indx)
+    ! assign strata boundaries
+    pStratum => pStrata%pStratum(indx)
+    pStratum%iEndDate = iStrataBoundary
+
+    pStratum => pStrata%pStratum(indx+1)
+    pStratum%iStartDate = iStrataBoundary + 1
+  end do
+
+  ! do indx=1, pStrata%iCurrentNumberOfStrata-1
+  !   pStratum => pStrata%pStratum(indx)
+  !   write(*,fmt="(i5,t12,f14.11,t30,a,t45,a)") indx, x(indx), pretty_date(pStratum%iStartDate), pretty_date(pStratum%iEndDate)
+  ! enddo
+  !
+  ! pStratum => pStrata%pStratum( pStrata%iCurrentNumberOfStrata )
+  ! write(*,fmt="(i5,t12,a,t30,a,t45,a)") indx, '--', pretty_date(pStratum%iStartDate), pretty_date(pStratum%iEndDate)
+
+end subroutine create_new_strata_from_genome
+
+!--------------------------------------------------------------------------------------------------
+
+subroutine create_genome_from_initial_strata(pConfig,pConc, n, x)
 
   type (CONC_T), dimension(:), pointer :: pConc
   type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
@@ -81,38 +130,40 @@ subroutine find_initial_strata(pConfig,pConc, n, x)
       end if
 
        call Assert(LOGICAL(iEndBound <= pConfig%iEndDate,kind=T_LOGICAL), &
-           "Logic error in routine find_initial_strata")
+           "Logic error in routine create_genome_from_initial_strata")
 
      end do
 
   end do n_strata
 
-  return
-
-end subroutine find_initial_strata
+end subroutine create_genome_from_initial_strata
 
 !----------------------------------------------------------------------
 
-subroutine check_stratum_validity(pConfig,pFlow,pConc,pStratum,iStrataNum,lValid)
+subroutine check_stratum_validity(pConfig, pFlow, pConc, pStrata, iStrataNum, lValid)
 
   ! input the parameters required to create a stratum boundary.
 
   type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
                                         ! program options, flags, and other settings
-  type (FLOW_T), dimension(:), pointer :: pFlow
-  type (CONC_T), dimension(:), pointer :: pConc
-  type (STRATUM_STATS_T), pointer :: pStratum
+  type (FLOW_T), dimension(:), pointer    :: pFlow
+  type (CONC_T), dimension(:), pointer    :: pConc
+  type (STRATA_T), pointer                :: pStrata
+  integer (kind=T_INT),intent(in)         :: iStrataNum
+  logical (kind=T_LOGICAL), intent(inout) :: lValid
 
-  integer (kind=T_INT),intent(in) :: iStrataNum
-  logical (kind=T_LOGICAL), intent(out) :: lValid
+  ! [ LOCALS ]
+  type (STRATUM_STATS_T), pointer  :: pStratum
 
   lValid = lTRUE
 
-  call Assert(LOGICAL(iStrataNum<=pConfig%iMaxNumStrata,kind=T_LOGICAL), &
-    "Too many strata specified in subroutine check_stratum_validity", __FILE__, __LINE__)
+  if ( iStrataNum > pStrata%iCurrentNumberOfStrata ) then
+    write(*,fmt="(a,i5,a,i5)") 'iStrataNum =',iStrataNum, '  pStrata%iCurrentNumberOfStrata', &
+      pStrata%iCurrentNumberOfStrata
+    call Assert(.False._T_LOGICAL, "Too many strata specified in subroutine check_stratum_validity", __FILE__, __LINE__)
+  endif
 
-!  pStratum%iStartDate = pConfig%iStrataBound(iStrataNum - 1) + 1
-!  pStratum%iEndDate = pConfig%iStrataBound(iStrataNum)
+  pStratum => pStrata%pStratum( iStrataNum )
 
   ! count of SAMPLES taken within current date range
   pStratum%iNumSamples = COUNT(pConc%iJulianDay >= pStratum%iStartDate       &
@@ -129,39 +180,32 @@ end subroutine check_stratum_validity
 
 !--------------------------------------------------------------------------------------------------
 
-subroutine calculate_and_combine_stratum_loads( pConfig, pStrata, pStats, pFlow, pConc, iMaxNumStrata )
+subroutine calculate_and_combine_stratum_loads( pConfig, pStrata, pStats, pFlow, pConc )
 
   type (CONFIG_T), pointer                                :: pConfig
-  type (STRATUM_STATS_T), dimension(:), pointer           :: pStrata
+  type (STRATA_T), pointer                                :: pStrata
   type (COMBINED_STATS_T), pointer                        :: pStats
   type (FLOW_T), dimension(:), pointer                    :: pFlow
   type (CONC_T), dimension(:), pointer                    :: pConc
-  integer (kind=T_INT), intent(in)                        :: iMaxNumStrata
 
   ! [ LOCALS ]
   type (STRATUM_STATS_T), pointer     :: pStratum
   logical (kind=T_LOGICAL)            :: lValid
   integer (kind=T_INT)                :: indx
-  integer (kind=T_INT)                :: iB_Day, iB_Month, iB_Year
-  integer (kind=T_INT)                :: iE_Day, iE_Month, iE_Year
   real (kind=T_REAL)                  :: r_edf
-  character (len=256)                 :: sBuf
 
   pStats%rCombinedLoad = rZERO
   pStats%rCombinedMSE  = rZERO
   pStats%rCombinedRMSE = rZERO
 
   ! loop over all strata members
-  do indx=1, iMaxNumStrata
-    pStratum => pStrata(indx)
-    call check_stratum_validity(pConfig, pFlow, pConc, pStratum, iMaxNumStrata, lValid)
-    call gregorian_date(pStratum%iStartDate, iB_Year, iB_Month, iB_Day)
-    call gregorian_date(pStratum%iEndDate, iE_Year, iE_Month, iE_Day)
+  do indx=1, pStrata%iCurrentNumberOfStrata
+    pStratum => pStrata%pStratum(indx)
 
-    write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") iB_Month,iB_Day,iB_Year
-    pStratum%sStartDate = trim(sBuf)
-    write(sBuf,FMT="(i2.2,'/',i2.2,'/',i4.4)") iE_Month,iE_Day,iE_Year
-    pStratum%sEndDate = trim(sBuf)
+    call check_stratum_validity(pConfig, pFlow, pConc, pStrata, indx, lValid)
+
+    pStratum%sStartDate = pretty_date(pStratum%iStartDate)
+    pStratum%sEndDate = pretty_date(pStratum%iEndDate)
 
     if(lValid) then
 
@@ -170,11 +214,14 @@ subroutine calculate_and_combine_stratum_loads( pConfig, pStrata, pStats, pFlow,
 
       call calculate_Beale_load(pFlow,pConc,pStratum, pConfig)
 
-      pStats%rCombinedLoad = pStats%rCombinedLoad + pStrata(indx)%rStratumCorrectedLoad
+      pStats%rCombinedLoad = pStats%rCombinedLoad + pStratum%rStratumCorrectedLoad
 
       ! Equation M, Baum (1982)
       ! MSE = MSE_d * N^2 = sum(N_h^2 * MSE_hd)
-      pStats%rCombinedMSE = pStats%rCombinedMSE + pStrata(indx)%rStratumMeanSquareError
+      pStats%rCombinedMSE = pStats%rCombinedMSE + pStratum%rStratumMeanSquareError
+
+!    print *, pretty_date( pStratum%iStartDate), "  ", pretty_date(pStratum%iEndDate), &
+!      pStratum%iNumSamples, pStratum%rStratumCorrectedLoad, pStratum%rStratumMeanSquareError
 
     else
 
@@ -183,25 +230,27 @@ subroutine calculate_and_combine_stratum_loads( pConfig, pStrata, pStats, pFlow,
       ! stratum...
 
       ! set statistics to default error values
-      pStrata%rDailyMeanSquareError = -99999.
-      pStrata%rDailyCorrectedLoadEstimate = -99999.
-      pStrata%rStratumCorrectedLoad = -99999.
-      pStrata%rStratumMeanSquareError = -99999.
-      pStrata%rDailyBiasedLoadEstimate = -99999.
-      pStrata%rDailyLoadBiasCorrection = -99999.
-      pStrata%rS_qq = rZERO
-      pStrata%rS_lq = rZERO
-      pStrata%rS_ll = rZERO
-      pStrata%rS_q2l = rZERO
-      pStrata%rS_ql2 = rZERO
-      pStrata%rS_q3 = rZERO
+      pStrata%pStratum%rDailyMeanSquareError = -99999.
+      pStrata%pStratum%rDailyCorrectedLoadEstimate = -99999.
+      pStrata%pStratum%rStratumCorrectedLoad = -99999.
+      pStrata%pStratum%rStratumMeanSquareError = -99999.
+      pStrata%pStratum%rDailyBiasedLoadEstimate = -99999.
+      pStrata%pStratum%rDailyLoadBiasCorrection = -99999.
+      pStrata%pStratum%rS_qq = rZERO
+      pStrata%pStratum%rS_lq = rZERO
+      pStrata%pStratum%rS_ll = rZERO
+      pStrata%pStratum%rS_q2l = rZERO
+      pStrata%pStratum%rS_ql2 = rZERO
+      pStrata%pStratum%rS_q3 = rZERO
       exit
 
     end if
 
   end do    ! loop over all strata members
 
-  if( any( pStrata(1:pConfig%iMaxNumStrata )%rStratumCorrectedLoad < 0. ) ) then
+  ! if any of the currently active strata members possesses negative load values,
+  ! make the combined stats reflect this
+  if( any( pStrata%pStratum(1:pStrata%iCurrentNumberOfStrata )%rStratumCorrectedLoad < 0. ) ) then
 
     pStats%rCombinedLoad = -HUGE( rZERO )
     pStats%rCombinedMSE = -HUGE( rZERO )
@@ -231,52 +280,53 @@ end subroutine calculate_and_combine_stratum_loads
 
 subroutine reset_strata_stats(pStrata)
 
-  type (STRATUM_STATS_T), dimension(:), pointer :: pStrata
+  type (STRATA_T), pointer :: pStrata
 
-  pStrata%iStartDate = 0
-  pStrata%iEndDate = 0
+  pStrata%pStratum%iStartDate = 0
+  pStrata%pStratum%iEndDate = 0
 
-  pStrata%sStartDate = "NONE"
-  pStrata%sEndDate = "NONE"
+  pStrata%pStratum%sStartDate = "NONE"
+  pStrata%pStratum%sEndDate = "NONE"
 
-  pStrata%iNumDays = 0
-  pStrata%iNumSamples = 0
-  pStrata%rMeanFlow = 0
+  pStrata%pStratum%iNumDays = 0
+  pStrata%pStratum%iNumSamples = 0
+  pStrata%pStratum%rMeanFlow = 0
 
-  pStrata%rMeanSampleFlow = rZERO
-  pStrata%rMeanSampleConc = rZERO
-  pStrata%rMeanSampleLoad = rZERO
+  pStrata%pStratum%rMeanSampleFlow = rZERO
+  pStrata%pStratum%rMeanSampleConc = rZERO
+  pStrata%pStratum%rMeanSampleLoad = rZERO
 
-  pStrata%rDailyBiasedLoadEstimate = rZERO
-  pStrata%rDailyLoadBiasCorrection = rZERO
-  pStrata%rDailyCorrectedLoadEstimate = rZERO
-  pStrata%rDailyMeanSquareError = rZERO
-  pStrata%rDailySumOfSquareError = rZERO
-  pStrata%rDailyLoadCI = rZERO
+  pStrata%pStratum%rDailyBiasedLoadEstimate = rZERO
+  pStrata%pStratum%rDailyLoadBiasCorrection = rZERO
+  pStrata%pStratum%rDailyCorrectedLoadEstimate = rZERO
+  pStrata%pStratum%rDailyMeanSquareError = rZERO
+  pStrata%pStratum%rDailySumOfSquareError = rZERO
+  pStrata%pStratum%rDailyLoadCI = rZERO
 
-  pStrata%rStratumCorrectedLoad = rZERO
-  pStrata%rStratumMeanSquareError = rZERO
-  pStrata%rStratumLoadCI = rZERO
+  pStrata%pStratum%rStratumCorrectedLoad = rZERO
+  pStrata%pStratum%rStratumMeanSquareError = rZERO
+  pStrata%pStratum%rStratumLoadCI = rZERO
 
-  pStrata%rS_qq = rZERO
-  pStrata%rS_lq = rZERO
-  pStrata%rS_ll = rZERO
-  pStrata%rS_q2l = rZERO
-  pStrata%rS_ql2 = rZERO
-  pStrata%rS_q3 = rZERO
+  pStrata%pStratum%rS_qq = rZERO
+  pStrata%pStratum%rS_lq = rZERO
+  pStrata%pStratum%rS_ll = rZERO
+  pStrata%pStratum%rS_q2l = rZERO
+  pStrata%pStratum%rS_ql2 = rZERO
+  pStrata%pStratum%rS_q3 = rZERO
 
 end subroutine reset_strata_stats
 
 !--------------------------------------------------------------------------------------------------
 
-subroutine print_stratum_stats(pConfig, pStratum, pFlow, pConc, iStrataNumber, iLU)
+subroutine print_stratum_stats(pConfig, pStrata, pFlow, pConc, iStrataNumber, iLU)
 
-  type (CONFIG_T), pointer :: pConfig ! pointer to data structure that contains
-                                      ! program options, flags, and other settings
-  type (STRATUM_STATS_T), pointer :: pStratum
+  type (CONFIG_T), pointer             :: pConfig
+  type (STRATA_T), pointer             :: pStrata
   type (FLOW_T), dimension(:), pointer :: pFlow
   type (CONC_T), dimension(:), pointer :: pConc
 
+  ![ LOCALS ]
+  type (STRATUM_STATS_T), pointer  :: pStratum
   integer (kind=T_INT), intent(in) :: iStrataNumber
   integer (kind=T_INT), intent(in) :: iLU
 
@@ -290,12 +340,13 @@ subroutine print_stratum_stats(pConfig, pStratum, pFlow, pConc, iStrataNumber, i
   if(iStrataNumber == 1) then
     write(iLU,FMT=*) repeat("~",80)
     write(iLU,FMT="(' ===> BEGINNING OF SUMMARY for calculation with ',i3,' strata')") &
-      pConfig%iMaxNumStrata
+      pStrata%iCurrentNumberOfStrata
     write(iLU,FMT="(1x,'FLOW DATA: ',a)") "'"//trim(pConfig%sFlowFileName)//"'"
     write(iLU,FMT="(1x,'CONENTRATION DATA: ',a)") "'"//trim(pConfig%sConcFileName)//"'"
     write(iLU,FMT=*) repeat("~",80)
   end if
 
+  pStratum => pStrata%pStratum( iStrataNumber )
 
   write(iLU,FMT="(t5,'Stratum number: ',i5)") iStrataNumber
 
@@ -409,15 +460,6 @@ subroutine print_stratum_stats(pConfig, pStratum, pFlow, pConc, iStrataNumber, i
   write(iLU, FMT=*) " "
 
   write(iLU,FMT=*) repeat("_",80)
-
-!  write(iLU,FMT="(t4,'S_qq:',t20,F14.3)") pStratum%rS_qq
-!  write(iLU,FMT="(t4,'S_ll:',t20,F14.3)") pStratum%rS_ll
-!  write(iLU,FMT="(t4,'S_lq:',t20,F14.3)") pStratum%rS_lq
-!  write(iLU,FMT="(t4,'S_q^2l:',t20,F14.3)") pStratum%rS_q2l
-!  write(iLU,FMT="(t4,'S_q^3:',t20,F14.3)") pStratum%rS_q3
-!  write(iLU,FMT="(t4,'S_ql^2:',t20,F14.3)") pStratum%rS_ql2
-
-  return
 
 end subroutine print_stratum_stats
 

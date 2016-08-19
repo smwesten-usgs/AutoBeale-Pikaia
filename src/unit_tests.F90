@@ -9,16 +9,18 @@ program unit_tests
   use iso_fortran_env, only : OUTPUT_UNIT
   implicit none
 
-  type (STRATUM_STATS_T), dimension(:), pointer  :: pTestStrata
+  type (STRATA_T), pointer                       :: pTestStrata
   type (CONFIG_T), pointer                       :: pTestConfig
   type (CONC_T), dimension(:), pointer           :: pTestConc
   type (FLOW_T), dimension(:), pointer           :: pTestFlow
   type (COMBINED_STATS_T), pointer               :: pTestStats
+  type (STRATUM_STATS_T), pointer                :: pStratum
 
   integer :: test_flow_dates(365)
   integer :: test_conc_months(52)
   integer :: test_conc_days(52)
   integer :: test_conc_dates(52)
+  integer :: iStat
 
   character (len=4) :: buf_str
 
@@ -62,32 +64,44 @@ program unit_tests
 
   integer :: day
   integer :: n
+  allocate( pTestConfig, stat=iStat )
+  call assert( iStat==0, "Problem allocating memory.", __FILE__, __LINE__ )
 
-  allocate( pTestConfig )
-  allocate( pTestStrata(3) )
-  allocate( pTestConc(52) )
-  allocate( pTestFlow(365) )
-  allocate( pTestStats )
+  allocate( pTestStrata, stat=iStat )
+  call assert( iStat==0, "Problem allocating memory.", __FILE__, __LINE__ )
+
+  allocate( pTestStrata%pStratum(3), stat=iStat )
+  call assert( iStat==0, "Problem allocating memory.", __FILE__, __LINE__ )
+
+  allocate( pTestConc(52), stat=iStat )
+  call assert( iStat==0, "Problem allocating memory.", __FILE__, __LINE__ )
+  allocate( pTestFlow(365) , stat=iStat )
+  call assert( iStat==0, "Problem allocating memory.", __FILE__, __LINE__ )
+  allocate( pTestStats , stat=iStat )
+  call assert( iStat==0, "Problem allocating memory.", __FILE__, __LINE__ )
 
   ! assemble CONFIGURATION dataset
+  pTestStrata%iCurrentNumberOfStrata = 3
   pTestConfig%iMaxNumStrata = 3
   pTestConfig%iTotNumDays   = 365
   pTestConfig%iConcUnitsCode = iMILLIGRAMS_PER_LITER
   pTestConfig%iFlowUnitsCode = iCUBIC_FEET_PER_SEC
 
   ! assemble STRATA dataset
-  pTestStrata(1)%iStartDate = julian_day( iYear=1997, iMonth=1, iDay=1 )
-  pTestStrata(1)%iEndDate   = julian_day( iYear=1997, iMonth=4, iDay=20 )
-  pTestStrata(1)%iNumDays   = pTestStrata(1)%iEndDate - pTestStrata(1)%iStartDate + 1
+  pStratum => pTestStrata%pStratum(1)
+  pStratum%iStartDate = julian_day( iYear=1997, iMonth=1, iDay=1 )
+  pStratum%iEndDate   = julian_day( iYear=1997, iMonth=4, iDay=20 )
+  pStratum%iNumDays   = pStratum%iEndDate - pStratum%iStartDate + 1
 
-  pTestStrata(2)%iStartDate = julian_day( iYear=1997, iMonth=4, iDay=21 )
-  pTestStrata(2)%iEndDate   = julian_day( iYear=1997, iMonth=5, iDay=26 )
-  pTestStrata(2)%iNumDays   = pTestStrata(2)%iEndDate - pTestStrata(2)%iStartDate + 1
+  pStratum => pTestStrata%pStratum(2)
+  pStratum%iStartDate = julian_day( iYear=1997, iMonth=4, iDay=21 )
+  pStratum%iEndDate   = julian_day( iYear=1997, iMonth=5, iDay=26 )
+  pStratum%iNumDays   = pStratum%iEndDate - pStratum%iStartDate + 1
 
-
-  pTestStrata(3)%iStartDate = julian_day( iYear=1997, iMonth=5, iDay=27 )
-  pTestStrata(3)%iEndDate   = julian_day( iYear=1997, iMonth=12, iDay=31 )
-  pTestStrata(3)%iNumDays   = pTestStrata(3)%iEndDate - pTestStrata(3)%iStartDate + 1
+  pStratum => pTestStrata%pStratum(3)
+  pStratum%iStartDate = julian_day( iYear=1997, iMonth=5, iDay=27 )
+  pStratum%iEndDate   = julian_day( iYear=1997, iMonth=12, iDay=31 )
+  pStratum%iNumDays   = pStratum%iEndDate - pStratum%iStartDate + 1
 
   ! assemble FLOW dataset
   test_flow_dates(1) = julian_day( iYear=1997, iMonth=1, iDay=1 )
@@ -115,39 +129,42 @@ program unit_tests
   call calculate_daily_loads(pFlow=pTestFlow, pConc=pTestConc, pConfig=pTestConfig, pStats=pTestStats )
   call bealecalc_orig(pConfig=pTestConfig, pFlow=pTestFlow, pConc=pTestConc, pStrata=pTestStrata)
 
-  deallocate( pTestStrata )
-  allocate( pTestStrata(5))
+  deallocate( pTestStrata%pStratum )
+  allocate( pTestStrata%pStratum(5))
 
   ! assemble new STRATA dataset
-  pTestStrata(1)%iStartDate = julian_day( iYear=1997, iMonth=1, iDay=1 )
-  pTestStrata(1)%iEndDate   = julian_day( iYear=1997, iMonth=4, iDay=20 )
-  pTestStrata(1)%iNumDays   = pTestStrata(1)%iEndDate - pTestStrata(1)%iStartDate + 1
+  pStratum => pTestStrata%pStratum(1)
+  pStratum%iStartDate = julian_day( iYear=1997, iMonth=1, iDay=1 )
+  pStratum%iEndDate   = julian_day( iYear=1997, iMonth=4, iDay=20 )
+  pStratum%iNumDays   = pStratum%iEndDate - pStratum%iStartDate + 1
 
-  pTestStrata(2)%iStartDate = julian_day( iYear=1997, iMonth=4, iDay=21 )
-  pTestStrata(2)%iEndDate   = julian_day( iYear=1997, iMonth=5, iDay=26 )
-  pTestStrata(2)%iNumDays   = pTestStrata(2)%iEndDate - pTestStrata(2)%iStartDate + 1
+  pStratum => pTestStrata%pStratum(2)
+  pStratum%iStartDate = julian_day( iYear=1997, iMonth=4, iDay=21 )
+  pStratum%iEndDate   = julian_day( iYear=1997, iMonth=5, iDay=26 )
+  pStratum%iNumDays   = pStratum%iEndDate - pStratum%iStartDate + 1
 
+  pStratum => pTestStrata%pStratum(3)
+  pStratum%iStartDate = julian_day( iYear=1997, iMonth=5, iDay=27 )
+  pStratum%iEndDate   = julian_day( iYear=1997, iMonth=8, iDay=17 )
+  pStratum%iNumDays   = pStratum%iEndDate - pStratum%iStartDate + 1
 
-  pTestStrata(3)%iStartDate = julian_day( iYear=1997, iMonth=5, iDay=27 )
-  pTestStrata(3)%iEndDate   = julian_day( iYear=1997, iMonth=8, iDay=17 )
-  pTestStrata(3)%iNumDays   = pTestStrata(3)%iEndDate - pTestStrata(3)%iStartDate + 1
+  pStratum => pTestStrata%pStratum(4)
+  pStratum%iStartDate = julian_day( iYear=1997, iMonth=8, iDay=18 )
+  pStratum%iEndDate   = julian_day( iYear=1997, iMonth=12, iDay=1 )
+  pStratum%iNumDays   = pStratum%iEndDate - pStratum%iStartDate + 1
 
+  pStratum => pTestStrata%pStratum(5)
+  pStratum%iStartDate = julian_day( iYear=1997, iMonth=12, iDay=2 )
+  pStratum%iEndDate   = julian_day( iYear=1997, iMonth=12, iDay=31 )
+  pStratum%iNumDays   = pStratum%iEndDate - pStratum%iStartDate + 1
 
-  pTestStrata(4)%iStartDate = julian_day( iYear=1997, iMonth=8, iDay=18 )
-  pTestStrata(4)%iEndDate   = julian_day( iYear=1997, iMonth=12, iDay=1 )
-  pTestStrata(4)%iNumDays   = pTestStrata(4)%iEndDate - pTestStrata(4)%iStartDate + 1
-
-
-  pTestStrata(5)%iStartDate = julian_day( iYear=1997, iMonth=12, iDay=2 )
-  pTestStrata(5)%iEndDate   = julian_day( iYear=1997, iMonth=12, iDay=31 )
-  pTestStrata(5)%iNumDays   = pTestStrata(5)%iEndDate - pTestStrata(5)%iStartDate + 1
-
+  pTestStrata%iCurrentNumberOfStrata = 5
   pTestConfig%iMaxNumStrata = 5
 
   call calculate_daily_loads(pFlow=pTestFlow, pConc=pTestConc, pConfig=pTestConfig, pStats=pTestStats )
   call bealecalc_orig(pConfig=pTestConfig, pFlow=pTestFlow, pConc=pTestConc, pStrata=pTestStrata)
 
-  call calculate_and_combine_stratum_loads( pTestConfig, pTestStrata, pTestStats, pTestFlow, pTestConc, pTestConfig%iMaxNumStrata )
+  call calculate_and_combine_stratum_loads( pTestConfig, pTestStrata, pTestStats, pTestFlow, pTestConc )
   call print_strata_summary(pTestConfig, pTestStrata, pTestStats, OUTPUT_UNIT )
 
 end program unit_tests

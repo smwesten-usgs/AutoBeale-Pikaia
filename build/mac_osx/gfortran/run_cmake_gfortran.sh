@@ -26,7 +26,7 @@ export BUILD_TYPE="Debug"
 export OS="mac_osx"
 
 # define platform and compiler specific compilation flags
-export CMAKE_Fortran_FLAGS_DEBUG="-O0 -g -cpp -fcheck=all -fexceptions -ffree-line-length-none"
+export CMAKE_Fortran_FLAGS_DEBUG="-g -cpp -fcheck=all -fbacktrace -fexceptions -ffree-line-length-none"
 #set CMAKE_Fortran_FLAGS_RELEASE="-O2 -mtune=native -floop-parallelize-all -flto -ffree-line-length-none -static-libgcc -static-libgfortran"
 export CMAKE_Fortran_FLAGS_RELEASE="-O3 -cpp -mtune=native -ffree-line-length-none"
 
