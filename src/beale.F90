@@ -862,11 +862,13 @@ subroutine save_best_result(pBestConfig, pConfig, pBestStrata, pStrata, pBestSta
 
   if ( pConfig%iMinimizationStatistic == MINIMIZE_MEAN_SQUARED_ERROR ) then
 
-    lIsBestConfig = pStats%rCombinedMSE < pBestStats%rCombinedMSE
+    lIsBestConfig = (       pStats%rCombinedMSE < pBestStats%rCombinedMSE      &
+                      .and. pStats%rCombinedMSE >= 0.0 )
 
   elseif ( pConfig%iMinimizationStatistic == MINIMIZE_CONFIDENCE_INTERVAL ) then
 
-    lIsBestConfig = pStats%rCombinedLoadCI < pBestStats%rCombinedLoadCI
+    lIsBestConfig = (       pStats%rCombinedLoadCI < pBestStats%rCombinedLoadCI    &
+                      .and. pStats%rCombinedLoadCI >= 0.0 )
 
   else
 

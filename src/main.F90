@@ -470,8 +470,6 @@ program main
           "('  jackknife iteration ',i3,' of ',i3,' : annual load = ',a)") &
            j,iNumIterations,trim(sf_L_units(pConfig,pJackknife(j)%rEstimate))
 
-
-
         write(LU_JACKKNIFE_OUT,FMT="(4a,2(i4.4,'-',i2.2,'-',i2.2,a),a)") &
             trim(sSite), sTab,trim(sConstituent),sTab, &
             iBYear,iBMonth,iBDay,sTab,iEYear,iEMonth,iEDay,sTab, &
