@@ -24,6 +24,9 @@ program unit_tests
 
   character (len=4) :: buf_str
 
+
+  ! discharge data are from the ROCKFLOW.DAT file that was distributed with the latest available
+  ! version of AutoBeale as a test case
   real :: test_flow_data(365) = [                                                             &
                     11.0,10.0,11.0,12.0,52.0,48.0,13.0,7.0,6.0,5.4,5.0,4.5,4.3,4.0,4.5,5.0,   &
                     5.6,5.0,4.2,3.8,4.1,100.0,140.0,30.0,35.0,56.0,13.0,120.0,80.0,20.0,9.0,  &
@@ -50,6 +53,8 @@ program unit_tests
                     161.0,48.0,22.0,14.0,10.0,8.9,8.4,9.2,8.8,8.1,7.7,8.1,50.0,39.0,220.0,    &
                     113.0,45.0,22.0,15.0,12.0,10.0 ]
 
+  ! concentration data are from the file ROCKNO23.DAT which was distributed as part of a test
+  ! case with the latest available version of AutoBeale
   integer :: test_conc_mmdd(52) = [ 0106,0113,0120,0127,0203,0210,0217,0224,0303,0310,0317,0324,  &
                                    0331,0407,0414,0421,0428,0505,0512,0519,0526,0602,0609,0616,  &
                                    0623,0630,0707,0714,0721,0728,0804,0811,0818,0825,0901,0908,  &
@@ -103,9 +108,10 @@ program unit_tests
   pStratum%iEndDate   = julian_day( iYear=1997, iMonth=12, iDay=31 )
   pStratum%iNumDays   = pStratum%iEndDate - pStratum%iStartDate + 1
 
-  ! assemble FLOW dataset
+  ! assemble FLOW dataset; first figure out the Julian Date for the first day of the run
   test_flow_dates(1) = julian_day( iYear=1997, iMonth=1, iDay=1 )
 
+  ! populate the remaining day values
   do day=2,365
     test_flow_dates( day ) = test_flow_dates(1) + day - 1
   end do

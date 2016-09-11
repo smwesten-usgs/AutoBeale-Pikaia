@@ -220,14 +220,31 @@ program main
   ! Open data files
   !----------------------------------------------------------------------
 
+    if ( len_trim( pConfig%sBaseDirName ) > 0 ) then
 
-    sConcFile = trim(pConfig%sBaseDirName)//trim(pConfig%sConcDirName) &
-       //trim(pConfig%sConcFileName)
+      sConcFile = trim(pConfig%sBaseDirName)//"/"
 
-    sFlowFile = trim(pConfig%sBaseDirName)//trim(pConfig%sFlowDirName) &
-       //trim(pConfig%sFlowFileName)
+      sFlowFile = trim(pConfig%sBaseDirName)//"/"
 
-    sResultsDir = trim(pConfig%sBaseDirName)//trim(pConfig%sResultsDirName)
+      sResultsDir = trim(pConfig%sBaseDirName)//"/"
+
+    endif
+
+    if ( len_trim( pConfig%sConcDirName ) > 0 )    &
+      sConcFile = trim( sConcFile )//trim( pConfig%sConcDirName )//"/"
+
+    if ( len_trim( pConfig%sFlowDirName ) > 0 )    &
+      sFlowFile = trim( sFlowFile )//trim( pConfig%sFlowDirName )//"/"
+
+    if ( len_trim( pConfig%sResultsDirName ) > 0 )    &
+      sResultsDir = trim( sResultsDir )//trim( pConfig%sResultsDirName )
+
+
+    sConcFile = trim( sConcFile )//trim(pConfig%sConcFileName)
+
+    sFlowFile = trim(sFlowFile)//trim(pConfig%sFlowFileName)
+
+    sResultsDir = trim( sResultsDir )//trim(pConfig%sResultsDirName)
 
     open (UNIT=LU_CONCDAT,iostat=iStat, &
       file=trim(sConcFile),status='OLD')
@@ -263,7 +280,7 @@ program main
     if ( len_trim( sResultsDir )==0 ) then
       open (LU_SHORT_RPT,file=trim(pConfig%sShortOutputFileName), ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
     else
-      open (LU_SHORT_RPT,file=trim(sResultsDir)//"\"//trim(pConfig%sShortOutputFileName), &
+      open (LU_SHORT_RPT,file=trim(sResultsDir)//"/"//trim(pConfig%sShortOutputFileName), &
         ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
     endif
 
@@ -277,7 +294,7 @@ program main
       open (UNIT=LU_LOADS_OUT,iostat=iStat, file="flow_conc_load_daily.txt",access='APPEND')
     else
       open (UNIT=LU_LOADS_OUT,iostat=iStat, &
-        file=trim(sResultsDir)//"\flow_conc_load_daily.txt",access='APPEND')
+        file=trim(sResultsDir)//"/flow_conc_load_daily.txt",access='APPEND')
     endif
 
     call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
@@ -286,7 +303,7 @@ program main
     if ( len_trim( sResultsDir )==0 ) then
       open (LU_JACKKNIFE_OUT,file="jackknife_results.txt", ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
     else
-      open (LU_JACKKNIFE_OUT,file=trim(sResultsDir)//"\"//"jackknife_results.txt", &
+      open (LU_JACKKNIFE_OUT,file=trim(sResultsDir)//"/"//"jackknife_results.txt", &
         ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
     endif
 
