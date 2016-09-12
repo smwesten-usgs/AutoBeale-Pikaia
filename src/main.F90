@@ -28,6 +28,8 @@ program main
 
   call initialize_configuration_variables()
 
+  sConcFile = ""; sFlowFile = ""; sResultsDir = ""
+
   iCommandCount = COMMAND_ARGUMENT_COUNT()
 
   if(iCommandCount < 4) then
@@ -240,11 +242,18 @@ program main
       sResultsDir = trim( sResultsDir )//trim( pConfig%sResultsDirName )
 
 
+    print *, "'"//trim(sConcFile)//"'"
+
+    print *, len_trim( sConcFile ), len_trim(pConfig%sConcFileName)
+
     sConcFile = trim( sConcFile )//trim(pConfig%sConcFileName)
+
+    print *, "'"//trim(sConcFile)//"'"
 
     sFlowFile = trim(sFlowFile)//trim(pConfig%sFlowFileName)
 
     sResultsDir = trim( sResultsDir )//trim(pConfig%sResultsDirName)
+
 
     open (UNIT=LU_CONCDAT,iostat=iStat, &
       file=trim(sConcFile),status='OLD')
@@ -444,7 +453,7 @@ program main
         STATUS='REPLACE', FORM='FORMATTED',iostat=iStat)
     else
       open (UNIT=LU_LONG_RPT,&
-        FILE=trim(sResultsDir)//"\"//trim(pConfig%sExtendedOutputFileName), &
+        FILE=trim(sResultsDir)//"/"//trim(pConfig%sExtendedOutputFileName), &
         STATUS='REPLACE', FORM='FORMATTED',iostat=iStat)
     endif
 
