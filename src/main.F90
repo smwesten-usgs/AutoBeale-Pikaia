@@ -324,7 +324,7 @@ program main
 
         write(LU_LOADS_OUT,FMT="(500a)") &
           'TribName',',', &
-          'Date',',', 'Fraction_of_year',',',&
+          'Date',',', 'Fraction_of_year',',','Compound_name',',', &
           'Flow',',','Conc',',','Load'
 
     end if
