@@ -107,6 +107,7 @@ module types
     character (len=256) :: sConcDirName = ""
     character (len=256) :: sResultsDirName = ""
     character (len=256) :: sFlowFileName = ""
+    character (len=256) :: sOptionalLabel = ""
     integer (kind=T_INT) :: iFlowFileFormat = iFLOW_FILE_FORMAT_USGS
     character (len=256) :: sConcFileName = ""
     integer (kind=T_INT) :: iConcFileFormat = iCONC_FILE_FORMAT_USGS

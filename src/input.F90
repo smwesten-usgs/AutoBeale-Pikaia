@@ -260,11 +260,18 @@ subroutine read_data(pConfig, pFlow, pConc)
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       read (sItem,*,iostat=iStat) rValue
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Internal read error: pConc(i)%rConc; sItem="//trim(sItem))
-      pConc(i)%rConc = rValue * &
-          CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor
 
+      iStat = verify( sItem, "0123456789.")
+
+      if ( iStat == 0 ) then
+
+        pConc(i)%rConc = rValue * CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor
+
+      else
+
+        pConc(i)%rConc = -99999.
+
+      endif
 
    elseif(pConfig%iConcFileFormat == iCONC_FILE_FORMAT_USGS) then
 
@@ -328,8 +335,19 @@ subroutine read_data(pConfig, pFlow, pConc)
 
       call Chomp_tab(sRecord,sItem)
       read (sItem,*,iostat=iStat) rValue
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-       "Internal read error: pConc(i)%rConc; sItem="//trim(sItem))
+
+      ! test to see whether argument is numeric
+      iStat = verify( sItem, "0123456789.")
+
+      if ( iStat == 0 ) then
+
+        pConc(i)%rConc = rValue
+
+      else
+
+        pConc(i)%rConc = -99999.
+
+      endif
 
       call Chomp_tab(sRecord,sItem)
       pConc(i)%sConcUnits = sItem
@@ -355,8 +373,8 @@ subroutine read_data(pConfig, pFlow, pConc)
       end if
 
       ! now apply the appropriate conversion factor
-      pConc(i)%rConc = rValue * &
-          CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor
+      if ( pConc(i)%rConc > 0. )  &
+        pConc(i)%rConc = rValue * CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor
 
    else
 
@@ -421,7 +439,7 @@ subroutine clean_concentration_data(pFlow,pConc)
     end if
   end do
 
-  ALLOCATE(pCopy(iCount),STAT=iStat)
+  ALLOCATE( pCopy( count( pConc%rConc >= 0. ) ),STAT=iStat)
   call Assert(iStat==0, &
     "Problem allocating memory in function clean_conc_data")
 
@@ -429,8 +447,8 @@ subroutine clean_concentration_data(pFlow,pConc)
   ! now iterate over the date range again, copying and averaging where
   ! necessary
   do i=MINVAL(pFlow%iJulianDay),MAXVAL(pFlow%iJulianDay)
-    iNumValues = COUNT(pConc%iJulianDay==i)
-    if(iNumValues>0) then
+    iNumValues = COUNT( ( pConc%iJulianDay==i ) .and. ( pConc%rConc >= 0. ) )
+    if( iNumValues > 0. ) then
       iCount = iCount + 1
       do j=1,SIZE(pConc)
         if(pConc(j)%iJulianDay == i) then
@@ -438,8 +456,7 @@ subroutine clean_concentration_data(pFlow,pConc)
           if(iNumValues>1) then
             pCopy(iCount)%iHour = 99
             pCopy(iCount)%iMinute = 99
-            pCopy(iCount)%rConc = SUM(pConc%rConc,pConc%iJulianDay==i) &
-                             / iNumValues
+            pCopy(iCount)%rConc = SUM(pConc%rConc,pConc%iJulianDay==i) / iNumValues
           end if
         end if
       end do

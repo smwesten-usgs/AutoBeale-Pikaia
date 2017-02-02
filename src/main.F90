@@ -108,6 +108,11 @@ program main
       call GET_COMMAND_ARGUMENT(i,sBuf)
       read(sBuf,FMT=*) pConfig%sResultsDirName
 
+    elseif(trim(sBuf)=="-label") then
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
+      read(sBuf,FMT=*) pConfig%sOptionalLabel
+
     elseif(trim(sBuf)=="-jackknife") then
       pConfig%lJackknife=lTRUE
 
@@ -324,7 +329,9 @@ program main
 
         write(LU_LOADS_OUT,FMT="(500a)") &
           'TribName',',', &
-          'Date',',', 'Fraction_of_year',',','Compound_name',',', &
+          'Date',',', 'Fraction_of_year',',',  &
+          'Sample_fraction', &
+          'Constituent_name',',', &
           'Flow',',','Conc',',','Load'
 
     end if
@@ -333,6 +340,7 @@ program main
 
         write(LU_SHORT_RPT,FMT="(500a)") &
           'AutoBealeRunDate', sTab, 'FlowFileName',sTab, 'ConcFileName',sTab,&
+          'Fraction', sTab, &
           'Constituent', sTab, &
           'StartDate', sTab, 'EndDate', sTab, &
           'MaxNumStrata',sTab,'CombinedLoad',sTab, &
@@ -443,9 +451,9 @@ program main
     call CleanUp(sConstituent)
 
     write(pConfig%sExtendedOutputFileName, &
-    FMT="('LOAD_',a,'_',a,'_',i4.4,i2.2,i2.2,'-'," &
+    FMT="('LOAD_',3(a,'_'),i4.4,i2.2,i2.2,'-'," &
         //"i4.4,i2.2,i2.2,'.txt')") &
-      trim(sSite),trim(sConstituent),iBYear,iBMonth,iBDay, &
+      trim(sSite),trim(pConfig%sOptionalLabel),trim(sConstituent),iBYear,iBMonth,iBDay, &
       iEYear,iEMonth,iEDay
 
     if( len_trim( sResultsDir ) == 0 ) then

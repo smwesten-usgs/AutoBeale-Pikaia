@@ -86,11 +86,13 @@ contains
 
     sUnits = CONC_UNITS(pConfig%iConcUnitsCode)%sUnitsSpelledOut
 
-    sAxisLabel = trim(sConstituentAllCaps)//', IN '//trim(sUnits)
+    sAxisLabel = trim(pConfig%sOptionalLabel)//' '//trim(sConstituentAllCaps)//', IN '//trim(sUnits)
 
-    write(sOutputFilePrefix,FMT="(a,'_',a,'_',i4.4,i2.2,i2.2,'-'," &
+    call Uppercase( sAxisLabel )
+
+    write(sOutputFilePrefix,FMT="(3(a,'_'),i4.4,i2.2,i2.2,'-'," &
         //"i4.4,i2.2,i2.2)") &
-      trim(sSite),trim(sConstituent),iBYear,iBMonth,iBDay, &
+      trim(sSite),trim(pConfig%sOptionalLabel),trim(sConstituent),iBYear,iBMonth,iBDay, &
       iEYear,iEMonth,iEDay
 
     call CleanUp(sOutputFilePrefix)
@@ -139,12 +141,12 @@ contains
       'colnames(conc)<-c("Date","Conc")'
 
     write(LU_R_SCRIPT,*) &
-      'num_strata<-'//trim(int2char(pBestStrata%iCurrentNumberOfStrata))
+      'num_strata<-'//trim(int2char(max(pBestStrata%iCurrentNumberOfStrata,1) ) )
 
     write(LU_R_SCRIPT,FMT=*) &
-      'bound<-data.frame(Date=rep(0,',pBestStrata%iCurrentNumberOfStrata-1,'))'
+      'bound<-data.frame(Date=rep(0,',max(pBestStrata%iCurrentNumberOfStrata-1,0),'))'
     write(LU_R_SCRIPT,FMT=*) &
-      'strata<-data.frame(Date=rep(0,',pBestStrata%iCurrentNumberOfStrata,'))'
+      'strata<-data.frame(Date=rep(0,',max(pBestStrata%iCurrentNumberOfStrata,1),'))'
 
     do i=1,size(pFlow%rFlow)
       write(LU_R_SCRIPT,&
@@ -269,7 +271,8 @@ contains
 
 
       write(LU_R_SCRIPT,FMT=*) &
-        'title.txt<-paste('//sQt//trim(sSite)//': '//trim(sConstituent) &
+        'title.txt<-paste('//sQt//trim(sSite)//': '//trim(pConfig%sOptionalLabel) &
+        //' '//trim(sConstituent) &
         //' ('//sQt//',datetext,'//sQt//')'//sQt//')'
 
       write(LU_R_SCRIPT,FMT=*) &
@@ -393,9 +396,10 @@ contains
       sTimeStamp = make_timestamp()
 
       write(LU_SHORT_RPT, &
-        FMT="(12a,i5,a,f18.2,a,a,a,5(f18.2,a),ES16.4,a,3(f18.2,a),i10)")  &
+        FMT="(14a,i5,a,f18.2,a,a,a,5(f18.2,a),ES16.4,a,3(f18.2,a),i10)")  &
            trim(sTimeStamp), sTab,                                              &
           trim(pConfig%sFlowFileName),sTab,trim(pConfig%sConcFileName),sTab,    &
+          trim(pConfig%sOptionalLabel), sTab,                                   &
           trim(pConc(1)%sConstituentName), sTab,                                &
           trim(pConfig%sStartDate), sTab, trim(pConfig%sEndDate), sTab,         &
           pStrata%iCurrentNumberOfStrata,sTab,pStats%rCombinedLoad                      &

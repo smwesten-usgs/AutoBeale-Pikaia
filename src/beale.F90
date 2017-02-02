@@ -329,10 +329,11 @@ subroutine calculate_daily_loads(pFlow,pConc,pConfig, pStats)
       trim(sf_C_units(pConfig,pConc(i)%rConc)), &
       trim(sf_L_units(pConfig,pConc(i)%rDailyLoad))
 
-    write(LU_LOADS_OUT,FMT="(a,',',i2.2,'/',i2.2,'/',i4,',',F12.4,',',A,',',2(G14.4,','),G14.4)") &
+    write(LU_LOADS_OUT,FMT="(a,',',i2.2,'/',i2.2,'/',i4,',',F12.4,',',A,',',A,',',2(G14.4,','),G14.4)") &
       trim(pConc(i)%sTribName), &
       pConc(i)%iMonth,pConc(i)%iDay, pConc(i)%iYear, &
       rYearFrac, &
+      trim( pConfig%sOptionalLabel ), &
       pConc(i)%sConstituentName, &
       rFlow, &
       pConc(i)%rConc, &
