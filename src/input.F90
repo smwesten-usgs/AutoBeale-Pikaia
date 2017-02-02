@@ -263,7 +263,7 @@ subroutine read_data(pConfig, pFlow, pConc)
 
       iStat = verify( sItem, "0123456789.")
 
-      if ( iStat == 0 ) then
+      if ( iStat > 0 ) then
 
         pConc(i)%rConc = rValue * CONC_UNITS(pConfig%iConcUnitsCode)%rConversionFactor
 
@@ -339,7 +339,7 @@ subroutine read_data(pConfig, pFlow, pConc)
       ! test to see whether argument is numeric
       iStat = verify( sItem, "0123456789.")
 
-      if ( iStat == 0 ) then
+      if ( iStat > 0. ) then
 
         pConc(i)%rConc = rValue
 
@@ -429,6 +429,8 @@ subroutine clean_concentration_data(pFlow,pConc)
 
   integer (kind=T_INT) :: i, iCount, iStat, iNumValues, j, k
 
+  logical    :: found_match
+
   iCount = 0
 
   ! here we are counting the number of days within the range of interest
@@ -447,16 +449,18 @@ subroutine clean_concentration_data(pFlow,pConc)
   ! now iterate over the date range again, copying and averaging where
   ! necessary
   do i=MINVAL(pFlow%iJulianDay),MAXVAL(pFlow%iJulianDay)
-    iNumValues = COUNT( ( pConc%iJulianDay==i ) .and. ( pConc%rConc >= 0. ) )
+    iNumValues = COUNT( pConc%iJulianDay==i  )
     if( iNumValues > 0. ) then
       iCount = iCount + 1
       do j=1,SIZE(pConc)
+        if ( pConc(j)%rConc < 0. ) cycle
         if(pConc(j)%iJulianDay == i) then
           pCopy(iCount) = pConc(j)
-          if(iNumValues>1) then
+          if(iNumValues > 1) then
             pCopy(iCount)%iHour = 99
             pCopy(iCount)%iMinute = 99
             pCopy(iCount)%rConc = SUM(pConc%rConc,pConc%iJulianDay==i) / iNumValues
+            exit
           end if
         end if
       end do
