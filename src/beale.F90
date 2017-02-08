@@ -346,9 +346,6 @@ end subroutine calculate_daily_loads
 
 !-----------------------------------------------------------------------
 
-
-!-----------------------------------------------------------------------
-
 subroutine calculate_and_report_monthly_stats(iLU,pFlow,pConc,pConfig)
 
   integer (kind=T_INT), intent(in) :: iLU         ! logical unit for output
@@ -946,18 +943,20 @@ subroutine reset_combined_stats(pStats)
 
   type (COMBINED_STATS_T), pointer :: pStats
 
+  real(kind=T_REAL), parameter :: RESETVAL = huge( 1.0_T_REAL )
+
     pStats%rCombinedLoad = rZERO
     pStats%rCombinedLoadAnnualized = rZERO
     pStats%rCombinedLoadAnnualizedCI = rZERO
-    pStats%rCombinedMSE = rZERO
-    pStats%rCombinedRMSE = rZERO
+    pStats%rCombinedMSE = RESETVAL
+    pStats%rCombinedRMSE = RESETVAL
 
     pStats%rCombinedDailyLoad = rZERO
-    pStats%rCombinedDailyMSE = rZERO
-    pStats%rCombinedDailyRMSE = rZERO
+    pStats%rCombinedDailyMSE = RESETVAL
+    pStats%rCombinedDailyRMSE = RESETVAL
 
     pStats%rCombinedEffectiveDegreesFreedom = rZERO
-    pStats%rCombinedLoadCI = 1.E+27
+    pStats%rCombinedLoadCI = RESETVAL
 
 end subroutine reset_combined_stats
 

@@ -2,7 +2,7 @@ program main
 
   use types
   use beale_data
-  use run_pikaia
+  use pikaia_driver_module
   use beale
   use input
   use output
@@ -46,18 +46,19 @@ program main
 #endif
     write(*,"(/,a,/)") "Usage: autobeale_pikaia -flow[_old] 'flow_filename' -conc[_old] 'concentration filename'"
     write(*,"(/,a,/)") "Other options:"
-    write(*,"(a)")     "   -max_strata    [ integer value representing maximum number of strata to consider. ]"
-    write(*,"(a)")     "   -basedir       [ absolute or relative path to working directory. ]"
-    write(*,"(a)")     "   -concdir       [ absolute or relative path to directory containing concentration files. ]"
-    write(*,"(a)")     "   -flowdir       [ absolute or relative path to directory containing flow (discharge) files. ]"
-    write(*,"(a)")     "   -resultsdir    [ absolute or relative path to directory in which results will be written. ]"
-    write(*,"(a)")     "   -minimize_ci   [ no argument; if present, genetic algorithm will minimize estimated confidence interval.]"
-    write(*,"(a)")     "   -minimize_mse  [ no argument; if present, genetic algorithm will minimize mean-squared error estimate.]"
-    write(*,"(a)")     "   -jackknife     [ no argument; if flag present, jackknife (leave-one-out) analysis will be conducted. ]"
-    write(*,"(a)")     "   -conc_units    [ default is 'mg/L'; other possibilities include 'ng/L', 'ug/L', 'g/L'. ]"
-    write(*,"(a)")     "   -flow_units    [ default is 'cfs'; other possibility is 'cms'. ]"
-    write(*,"(a)")     "   -load_units    [ default is 'kg'; other possibility is 'MT' (metric tons). ]"
-    write(*,"(a,/)")   "   -label         [ optional label to include in title of output R plot. ]"
+    write(*,"(a)")     "  -max_strata      [ integer value representing maximum number of strata to consider. ]"
+    write(*,"(a)")     "  -basedir         [ absolute or relative path to working directory. ]"
+    write(*,"(a)")     "  -concdir         [ absolute or relative path to directory containing concentration files. ]"
+    write(*,"(a)")     "  -flowdir         [ absolute or relative path to directory containing flow (discharge) files. ]"
+    write(*,"(a)")     "  -resultsdir      [ absolute or relative path to directory in which results will be written. ]"
+    write(*,"(a)")     "  -minimize_ci     [ no argument; if present, genetic algorithm will minimize estimated confidence interval.]"
+    write(*,"(a)")     "  -minimize_mse    [ no argument; if present, genetic algorithm will minimize mean-squared error estimate.]"
+    write(*,"(a)")     "  -jackknife       [ no argument; if flag present, jackknife (leave-one-out) analysis will be conducted. ]"
+    write(*,"(a)")     "  -conc_units      [ default is 'mg/L'; other possibilities include 'ng/L', 'ug/L', 'g/L'. ]"
+    write(*,"(a)")     "  -flow_units      [ default is 'cfs'; other possibility is 'cms'. ]"
+    write(*,"(a)")     "  -load_units      [ default is 'kg'; other possibility is 'MT' (metric tons). ]"
+    write(*,"(a)")     "  -stratum_samples [ minimum number of samples in a valid stratum; default is 3. ]"
+    write(*,"(a,/)")   "  -label           [ optional label to include in title of output R plot. ]"
     stop
   end if
 
@@ -100,6 +101,12 @@ program main
       call GET_COMMAND_ARGUMENT(i,sBuf)
       read(sBuf,FMT=*) iValue
       pConfig%iMaxEvalStrata = iValue
+
+    elseif(trim(sBuf)=="-stratum_samples") then
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
+      read(sBuf,FMT=*) iValue
+      pConfig%iMinSamplesPerStratum = iValue
 
     elseif(trim(sBuf)=="-basedir") then
       i = i + 1
@@ -489,6 +496,9 @@ program main
 
         pConfig%iNumConcPoints = COUNT(pConc%lInclude)
 
+        call reset_combined_stats(pStats)
+        call reset_combined_stats(pBestStats)
+        
         ! subroutine "pikaia_driver" takes care of iterating over multiple strata
         ! to determine the optimum stratification scheme
         call pikaia_driver(pConfig, pBestConfig, pStrata, pBestStrata, pStats, pBestStats )
@@ -504,8 +514,6 @@ program main
             trim(sSite), sTab,trim(sConstituent),sTab, &
             iBYear,iBMonth,iBDay,sTab,iEYear,iEMonth,iEDay,sTab, &
             trim(sf_L_units(pConfig,pJackknife(j)%rEstimate))
-
-        call reset_combined_stats(pStats)
 
       end do
 
@@ -529,6 +537,7 @@ program main
 
       ! now run one more time in non-Jackknife mode
       call reset_combined_stats(pStats)
+      call reset_combined_stats(pBestStats)
       pConc%lInclude = lTRUE
       pConfig%lJackknife=lFALSE
       pConfig%iNumConcPoints = size(pConc)

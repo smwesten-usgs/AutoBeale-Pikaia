@@ -2,9 +2,9 @@
  colnames(flow)<-c("Date","Q")
  conc<-data.frame(cbind(Date=1,Q=rep(0,          11 )))
  colnames(conc)<-c("Date","Conc")
- num_strata<-1
- bound<-data.frame(Date=rep(0,           0 ))
- strata<-data.frame(Date=rep(0,           1 ))
+ num_strata<-3
+ bound<-data.frame(Date=rep(0,           2 ))
+ strata<-data.frame(Date=rep(0,           3 ))
 flow$Date[1] <- "2015-01-01"; flow$Q[1] <-3095.499
 flow$Date[2] <- "2015-01-02"; flow$Q[2] <-3579.569
 flow$Date[3] <- "2015-01-03"; flow$Q[3] <-4484.015
@@ -381,14 +381,18 @@ conc$Date[8] <- "2015-10-08"; conc$Conc[8] <- 3.177
 conc$Date[9] <- "2015-10-22"; conc$Conc[9] <- 1.868
 conc$Date[10] <- "2015-11-05"; conc$Conc[10] <- 1.374
 conc$Date[11] <- "2015-11-19"; conc$Conc[11] <- 1.375
+bound$Date[1]<-"2015-06-18"
+bound$Date[2]<-"2015-10-12"
  dummy<-runif(length(flow$Date))*max(conc$Conc)*1.1
  flow$Date<-as.Date(flow$Date)
  conc$Date<-as.Date(conc$Date)
+ bound$Date<-as.Date(bound$Date)
  first<-flow$Date[1]
  last<-flow$Date[length(flow$Date)]
  datetext<-paste(format(first,format="%B %Y"),"through",format(last,format="%B %Y"))
  strata$Date[1]<-mean(flow$Date[flow$Date<=bound$Date[1]])
  strata$Date[num_strata]<-mean(flow$Date[flow$Date>bound$Date[num_strata-1]])
+strata$Date[2]<-mean(flow$Date[flow$Date>bound$Date[1] & flow$Date<=bound$Date[2]])
  png(filename = "output/St.JosephRiver__total_pcb_20150101-20151231.png", width = 1024, height = 768, units = "px", pointsize = 12, bg = "white", res = NA)
  nf <- layout(matrix(c(1,2),2,1,byrow=F), width=2,height=c(5,1))
  # set margins: bottom, left side, top, right side
@@ -406,7 +410,7 @@ conc$Date[11] <- "2015-11-19"; conc$Conc[11] <- 1.375
  axis.Date(1,flow$Date,side=3,labels=F,at=seq(as.Date(flow$Date[1]),as.Date(flow$Date[length(flow$Date)]),"months"))
  title.txt<-paste("St.Joseph River:  total_pcb (",datetext,")")
  title(main=title.txt, font.main=2, col.main="red",line=3)
- mtext(expression("Load: 8.2582 Kg" %+-% "2.2108 Kg     RMSE: 0.97824 Kg     Annual Load: 8.2582 Kg" %+-% "2.2123 Kg     Annual Load (jackknife): 8.9096 Kg" %+-% "9.7553 Kg"),side=3,line=1,font=2,cex=0.9)
+ mtext(expression("Load: 13.7 Kg" %+-% "12.0 Kg     RMSE: 2.8138 Kg     Annual Load: 13.7 Kg" %+-% "12.0 Kg     Annual Load (jackknife): 13.0 Kg" %+-% "11.8 Kg"),side=3,line=1,font=2,cex=0.9)
  par(new=TRUE)
  plot(x=flow$Date,y=dummy, type="n", axes=FALSE, ann=FALSE)
  axis(4, col.axis="blue", las=1)
@@ -419,7 +423,9 @@ text(x=conc$Date+2,y=conc$Conc + 0.240, sprintf("%.3f",conc$Conc),cex=0.6,srt=90
 text(x=conc$Date+2,y=conc$Conc + 0.240, sprintf("%.2f",conc$Conc),cex=0.6,srt=90)
  }
  abline(v=bound$Date+1.5,col="red",lty=3,lwd=2)
- text(x=strata$Date[1],y=0.97*max(dummy),"8.2582 Kg",srt=90,cex=0.7,col="red")
+ text(x=strata$Date[1],y=0.97*max(dummy),"10.2 Kg",srt=90,cex=0.7,col="red")
+ text(x=strata$Date[2],y=0.97*max(dummy),"2.6638 Kg",srt=90,cex=0.7,col="red")
+ text(x=strata$Date[3],y=0.97*max(dummy),"0.88847 Kg",srt=90,cex=0.7,col="red")
  box()
  leg.txt<-c("DISCHARGE","CONCENTRATION","STRATA BOUNDARY")
  leg.col<-c("steelblue","black","red")
@@ -436,11 +442,13 @@ text(x=conc$Date+2,y=conc$Conc + 0.240, sprintf("%.2f",conc$Conc),cex=0.6,srt=90
  dummy<-runif(length(flow$Date))*max(conc$Conc)*1.1
  flow$Date<-as.Date(flow$Date)
  conc$Date<-as.Date(conc$Date)
+ bound$Date<-as.Date(bound$Date)
  first<-flow$Date[1]
  last<-flow$Date[length(flow$Date)]
  datetext<-paste(format(first,format="%B %Y"),"through",format(last,format="%B %Y"))
  strata$Date[1]<-mean(flow$Date[flow$Date<=bound$Date[1]])
  strata$Date[num_strata]<-mean(flow$Date[flow$Date>bound$Date[num_strata-1]])
+strata$Date[2]<-mean(flow$Date[flow$Date>bound$Date[1] & flow$Date<=bound$Date[2]])
  pdf(file = "output/St.JosephRiver__total_pcb_20150101-20151231.pdf", width = 11, height = 8.5)
  nf <- layout(matrix(c(1,2),2,1,byrow=F), width=2,height=c(5,1))
  # set margins: bottom, left side, top, right side
@@ -458,7 +466,7 @@ text(x=conc$Date+2,y=conc$Conc + 0.240, sprintf("%.2f",conc$Conc),cex=0.6,srt=90
  axis.Date(1,flow$Date,side=3,labels=F,at=seq(as.Date(flow$Date[1]),as.Date(flow$Date[length(flow$Date)]),"months"))
  title.txt<-paste("St.Joseph River:  total_pcb (",datetext,")")
  title(main=title.txt, font.main=2, col.main="red",line=3)
- mtext(expression("Load: 8.2582 Kg" %+-% "2.2108 Kg     RMSE: 0.97824 Kg     Annual Load: 8.2582 Kg" %+-% "2.2123 Kg     Annual Load (jackknife): 8.9096 Kg" %+-% "9.7553 Kg"),side=3,line=1,font=2,cex=0.9)
+ mtext(expression("Load: 13.7 Kg" %+-% "12.0 Kg     RMSE: 2.8138 Kg     Annual Load: 13.7 Kg" %+-% "12.0 Kg     Annual Load (jackknife): 13.0 Kg" %+-% "11.8 Kg"),side=3,line=1,font=2,cex=0.9)
  par(new=TRUE)
  plot(x=flow$Date,y=dummy, type="n", axes=FALSE, ann=FALSE)
  axis(4, col.axis="blue", las=1)
@@ -471,7 +479,9 @@ text(x=conc$Date+2,y=conc$Conc + 0.240, sprintf("%.3f",conc$Conc),cex=0.6,srt=90
 text(x=conc$Date+2,y=conc$Conc + 0.240, sprintf("%.2f",conc$Conc),cex=0.6,srt=90)
  }
  abline(v=bound$Date+1.5,col="red",lty=3,lwd=2)
- text(x=strata$Date[1],y=0.97*max(dummy),"8.2582 Kg",srt=90,cex=0.7,col="red")
+ text(x=strata$Date[1],y=0.97*max(dummy),"10.2 Kg",srt=90,cex=0.7,col="red")
+ text(x=strata$Date[2],y=0.97*max(dummy),"2.6638 Kg",srt=90,cex=0.7,col="red")
+ text(x=strata$Date[3],y=0.97*max(dummy),"0.88847 Kg",srt=90,cex=0.7,col="red")
  box()
  leg.txt<-c("DISCHARGE","CONCENTRATION","STRATA BOUNDARY")
  leg.col<-c("steelblue","black","red")

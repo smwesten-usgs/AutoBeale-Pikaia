@@ -175,7 +175,7 @@ subroutine check_stratum_validity(pConfig, pFlow, pConc, pStrata, iStrataNum, lV
 
   if(pStratum%iEndDate <= pStratum%iStartDate) then
     lValid = lFALSE
-  elseif(pStratum%iNumSamples <= 2) then
+  elseif(pStratum%iNumSamples < pConfig%iMinSamplesPerStratum ) then
     lValid = lFALSE
   end if
 

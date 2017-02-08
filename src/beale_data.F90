@@ -7,8 +7,8 @@ implicit none
   type (CONFIG_T), pointer :: pBestConfig
 
   integer, parameter :: PIKAIA_MAX_NUM_PARAMETERS                      = 32
-  integer, parameter :: PIKAIA_MAX_POPULATION_SIZE                     = 150
-  integer, parameter :: PIKAIA_MAX_GENERATION_LENGTH                   = 850
+  integer, parameter :: PIKAIA_MAX_POPULATION_SIZE                     = 200
+  integer, parameter :: PIKAIA_MAX_GENERATION_LENGTH                   = 1000
   integer, parameter :: PIKAIA_MAX_NUM_OPTIMIZATION_ATTEMPTS           = 3
   integer, parameter :: PIKAIA_MAX_NUM_ITERATIONS_WITHOUT_IMPROVEMENT  = 12
   integer, parameter :: PIKAIA_OUTPUT_OPTION                           = 0

@@ -1,4 +1,4 @@
-module run_pikaia
+module pikaia_driver_module
 
   use types
   use beale
@@ -39,6 +39,8 @@ subroutine pikaia_driver(pConfig, pBestConfig, pStrata, pBestStrata, pStats, pBe
   real (kind=T_REAL), dimension(:),allocatable :: x
 
   real (kind=T_REAL) :: fb_min,fb_max,fb, rTempval, r_edf, r_CI
+
+  logical(kind=T_LOGICAL)    :: sufficient_data_for_num_strata
 
   if ( .not. allocated( x ) ) then
     ALLOCATE(x(PIKAIA_MAX_NUM_PARAMETERS), STAT=iStat)
@@ -135,18 +137,6 @@ subroutine pikaia_driver(pConfig, pBestConfig, pStrata, pBestStrata, pStats, pBe
   call calculate_Beale_load(pFlow,pConc,pStratum, pConfig)
 
   call calculate_and_combine_stratum_loads( pConfig, pStrata, pStats, pFlow, pConc )
-  ! pStats%rCombinedLoad = pStratum%rStratumCorrectedLoad
-  ! pStats%rCombinedMSE = pStratum%rStratumMeanSquareError
-  !
-  ! pStats%rCombinedRMSE = sqrt(pStats%rCombinedMSE)
-  !
-  ! r_edf = calculate_effective_degrees_of_freedom( pConfig, pStrata, pStats )
-  ! pStats%rCombinedLoadCI = calculate_confidence_interval(r_edf, pStats%rCombinedMSE )
-  !
-  ! pStats%rCombinedLoadAnnualized = pStats%rCombinedLoad * 365.25_T_REAL / REAL(pConfig%iTotNumDays,kind=T_REAL)
-  !
-  !   pStats%rCombinedLoadAnnualizedCI = calculate_confidence_interval(r_edf, &
-  !      pStats%rCombinedMSE * 365.25**2 / REAL(pConfig%iTotNumDays**2, kind=T_REAL))
 
   sBuf = trim(pConc(1)%sTribName)//"_"//trim(pConc(1)%sConstituentName)
 
@@ -188,74 +178,80 @@ subroutine pikaia_driver(pConfig, pBestConfig, pStrata, pBestStrata, pStats, pBe
     ctrl(1) = PIKAIA_MAX_POPULATION_SIZE    ! # individuals
     ctrl(2) = PIKAIA_MAX_GENERATION_LENGTH  ! # generations
 
-    if(iCurrentStrata > ( pConfig%iCountUniqueSamples - 1 ) /2 ) then
+    if(iCurrentStrata > ( pConfig%iCountUniqueSamples -1 ) / pConfig%iMinSamplesPerStratum ) then
       write(6,FMT="('Not enough data to support ',i3,' or more strata...')") iCurrentStrata
-      exit
+      sufficient_data_for_num_strata = lFALSE
+    else
+      sufficient_data_for_num_strata = lTRUE
     end if
 
     iNumAttempts = 1
 
-    do
-      if ( iNumAttempts > PIKAIA_MAX_NUM_OPTIMIZATION_ATTEMPTS ) exit
+    if ( sufficient_data_for_num_strata ) then
 
-      ! the call below resets the combined load statistics to zero; the boundaries and
-      ! strata definitions are retained
-      call reset_combined_stats(pStats)
+      do
+        if ( iNumAttempts > PIKAIA_MAX_NUM_OPTIMIZATION_ATTEMPTS ) exit
 
-      call pikaia( evaluate_fitness_function, iCurrentStrata - 1, ctrl, x, fb, status )
+        ! the call below resets the combined load statistics to zero; the boundaries and
+        ! strata definitions are retained
+        call reset_combined_stats(pStats)
 
-      if ( fb < 0. ) then
+        call pikaia( evaluate_fitness_function, iCurrentStrata - 1, ctrl, x, fb, status )
 
-        iNumAttempts = iNumAttempts + 1
-        ctrl(1) = ctrl(1) + 12       ! try again, with larger population
-        ctrl(2) = ctrl(2) + 175      ! try again, with more generations
+        if ( fb < 0. ) then
 
-        print *, '#### FAILED TO FIND AN ACCEPTABLE SOLUTION; RERUNNING...'
-        print *, '  setting ctrl(1) [population size] =       ',ctrl(1)
-        print *, '  setting ctrl(2) [number of generations] = ',ctrl(2)
+          iNumAttempts = iNumAttempts + 1
+          ctrl(1) = ctrl(1) + 12       ! try again, with larger population
+          ctrl(2) = ctrl(2) + 175      ! try again, with more generations
 
-      else
+          print *, '#### FAILED TO FIND AN ACCEPTABLE SOLUTION; RERUNNING...'
+          print *, '  setting ctrl(1) [population size] =       ',ctrl(1)
+          print *, '  setting ctrl(2) [number of generations] = ',ctrl(2)
 
-        exit
+        else
+
+          exit
+
+        end if
+
+      end do
+
+      sBuf = trim(pConc(1)%sTribName)//"_"//trim(pConc(1)%sConstituentName)
+
+      write(LU_STATS_OUT,FMT="(a,a,i4,5a,4(f14.2,a),f14.2,500a)") &
+        trim(sBuf),sTab,iCurrentStrata, sTab,&
+        trim(sStartDate),sTab,trim(sEndDate),sTab, &
+        pStats%rCombinedLoad, sTab, pStats%rCombinedLoadCI, sTab, &
+        pStats%rCombinedLoadAnnualized, sTab, &
+        pStats%rCombinedEffectiveDegreesFreedom, sTab, &
+        pStats%rCombinedRMSE, sTab, &
+        (pStrata%pStratum(k)%sStartDate,sTab,pStrata%pStratum(k)%sEndDate,sTab, &
+          k=1,pStrata%iCurrentNumberOfStrata)
+
+      flush(LU_STATS_OUT)
+
+      if(.not. pConfig%lJackknife) then
+
+        write(LU_STD_OUT,FMT=*) repeat("_",80)
+        write(LU_STD_OUT,FMT=*) " "
+
+        do j=1, pStrata%iCurrentNumberOfStrata
+          pStratum=>pStrata%pStratum(j)
+          call print_stratum_stats(pConfig,pStrata, pFlow, pConc, j, LU_LONG_RPT)
+        end do
+
+        call print_strata_summary(pConfig, pStrata, pStats, LU_STD_OUT)
+        call print_strata_summary(pConfig, pStrata, pStats, LU_LONG_RPT)
+
+        write(LU_STD_OUT,FMT=*) " "
 
       end if
 
-    end do
+      call bealecalc_orig(pConfig, pFlow, pConc, pStrata)
 
-    sBuf = trim(pConc(1)%sTribName)//"_"//trim(pConc(1)%sConstituentName)
+      call save_best_result(pBestConfig,pConfig, pBestStrata, pStrata, pBestStats, pStats)
 
-    write(LU_STATS_OUT,FMT="(a,a,i4,5a,4(f14.2,a),f14.2,500a)") &
-      trim(sBuf),sTab,iCurrentStrata, sTab,&
-      trim(sStartDate),sTab,trim(sEndDate),sTab, &
-      pStats%rCombinedLoad, sTab, pStats%rCombinedLoadCI, sTab, &
-      pStats%rCombinedLoadAnnualized, sTab, &
-      pStats%rCombinedEffectiveDegreesFreedom, sTab, &
-      pStats%rCombinedRMSE, sTab, &
-      (pStrata%pStratum(k)%sStartDate,sTab,pStrata%pStratum(k)%sEndDate,sTab, &
-        k=1,pStrata%iCurrentNumberOfStrata)
-
-    flush(LU_STATS_OUT)
-
-    if(.not. pConfig%lJackknife) then
-
-      write(LU_STD_OUT,FMT=*) repeat("_",80)
-      write(LU_STD_OUT,FMT=*) " "
-
-      do j=1, pStrata%iCurrentNumberOfStrata
-        pStratum=>pStrata%pStratum(j)
-        call print_stratum_stats(pConfig,pStrata, pFlow, pConc, j, LU_LONG_RPT)
-      end do
-
-      call print_strata_summary(pConfig, pStrata, pStats, LU_STD_OUT)
-      call print_strata_summary(pConfig, pStrata, pStats, LU_LONG_RPT)
-
-      write(LU_STD_OUT,FMT=*) " "
-
-    end if
-
-    call bealecalc_orig(pConfig, pFlow, pConc, pStrata)
-
-    call save_best_result(pBestConfig,pConfig, pBestStrata, pStrata, pBestStats, pStats)
+    endif  ! sufficient_data_for_num_strata
 
   end do
 
@@ -288,4 +284,4 @@ subroutine pikaia_driver(pConfig, pBestConfig, pStrata, pBestStrata, pStats, pBe
 
 end subroutine pikaia_driver
 
-end module run_pikaia
+end module pikaia_driver_module

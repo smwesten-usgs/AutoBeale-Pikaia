@@ -124,6 +124,7 @@ module types
     integer (kind=T_INT) :: iMaxNumStrata = 1
     integer (kind=T_INT) :: iMaxEvalStrata = 11
     integer (kind=T_INT) :: iTotNumDays = 0
+    integer (kind=T_INT) :: iMinSamplesPerStratum = 3
     integer (kind=T_INT) :: iCountUniqueSamples  = 0
     integer (kind=T_INT) :: iFuncCallNum         = 0
     real (kind=T_REAL),dimension(iMAX_STRATA) :: rPikaiaXValues

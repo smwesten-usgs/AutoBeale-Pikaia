@@ -1,7 +1,7 @@
 add_executable( autobeale_pikaia
       beale_data.F90
       beale.F90
-      run_pikaia.F90
+      pikaia_driver_module.F90
       input.F90
       pikaia_module.F90
       pikaia_function.F90
