@@ -1,0 +1,121 @@
+------------------------------------------------------------------------
+Statistics for JAN
+Statistic                Flow                 Conc                 Load
+
+count:                     30                    0                    0
+
+mean:              4211.0 cfs
+minimum:           3375.8 cfs
+maximum:           5439.4 cfs
+
+------------------------------------------------------------------------
+Statistics for FEB
+Statistic                Flow                 Conc                 Load
+
+count:                     28                    0                    0
+
+mean:              3163.7 cfs
+minimum:           2751.6 cfs
+maximum:           3898.0 cfs
+
+------------------------------------------------------------------------
+Statistics for MAR
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    0                    0
+
+mean:              5261.5 cfs
+minimum:           2675.1 cfs
+maximum:           7630.5 cfs
+
+------------------------------------------------------------------------
+Statistics for APR
+Statistic                Flow                 Conc                 Load
+
+count:                     30                    1                    1
+
+mean:              4399.5 cfs            2.995 ng/       0.32760E-01 Kg
+minimum:           3872.6 cfs            2.995 ng/       0.32760E-01 Kg
+maximum:           4955.3 cfs            2.995 ng/       0.32760E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for MAY
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    1                    1
+
+mean:              3795.7 cfs            3.845 ng/       0.37390E-01 Kg
+minimum:           2891.7 cfs            3.845 ng/       0.37390E-01 Kg
+maximum:           6573.2 cfs            3.845 ng/       0.37390E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for JUN
+Statistic                Flow                 Conc                 Load
+
+count:                     30                    1                    1
+
+mean:              6357.9 cfs            7.274 ng/           0.14894 Kg
+minimum:           4407.6 cfs            7.274 ng/           0.14894 Kg
+maximum:           8777.0 cfs            7.274 ng/           0.14894 Kg
+
+------------------------------------------------------------------------
+Statistics for JUL
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    2                    2
+
+mean:              7566.0 cfs            1.796 ng/       0.31368E-01 Kg
+minimum:           4980.8 cfs            1.712 ng/       0.21667E-01 Kg
+maximum:          12509.4 cfs            1.880 ng/       0.41070E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for AUG
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    1                    1
+
+mean:              3552.9 cfs            2.318 ng/       0.16974E-01 Kg
+minimum:           2828.0 cfs            2.318 ng/       0.16974E-01 Kg
+maximum:           4980.8 cfs            2.318 ng/       0.16974E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for SEP
+Statistic                Flow                 Conc                 Load
+
+count:                     30                    1                    1
+
+mean:              2832.7 cfs            1.784 ng/       0.11451E-01 Kg
+minimum:           2407.6 cfs            1.784 ng/       0.11451E-01 Kg
+maximum:           4114.6 cfs            1.784 ng/       0.11451E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for OCT
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    2                    2
+
+mean:              2340.6 cfs            2.522 ng/       0.13918E-01 Kg
+minimum:           2000.0 cfs            1.868 ng/       0.10012E-01 Kg
+maximum:           2649.6 cfs            3.177 ng/       0.17824E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for NOV
+Statistic                Flow                 Conc                 Load
+
+count:                     30                    2                    2
+
+mean:              2675.5 cfs            1.375 ng/       0.89751E-02 Kg
+minimum:           2356.7 cfs            1.374 ng/       0.87369E-02 Kg
+maximum:           3490.4 cfs            1.375 ng/       0.92133E-02 Kg
+
+------------------------------------------------------------------------
+Statistics for DEC
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    0                    0
+
+mean:              3769.0 cfs
+minimum:           2726.1 cfs
+maximum:           7401.2 cfs
+
+------------------------------------------------------------------------

@@ -15,7 +15,7 @@ program main
   integer (kind=T_INT)           :: iCommandCount, iValue, iNumFiles, iNumIterations
   character (len=256)            :: sRecord, sItem, sBuf, sOutputFilePrefix
   character (len=256)            :: sSite, sConstituent
-  character (len=256)            :: sConcFile, sFlowFile, sResultsDir
+  character (len=256)            :: sConcFile, sFlowFile, sResultsDir, sBaseDir = ""
   character (len=256)            :: sFileList = ""
   character (len=:), allocatable :: buf_str
   integer (kind=T_INT)           :: str_len
@@ -45,6 +45,19 @@ program main
       write(*,"(a,t35,a)") "Compiler name:", "gfortran version "//trim(__VERSION__)
 #endif
     write(*,"(/,a,/)") "Usage: autobeale_pikaia -flow[_old] 'flow_filename' -conc[_old] 'concentration filename'"
+    write(*,"(/,a,/)") "Other options:"
+    write(*,"(a)")     "   -max_strata    [ integer value representing maximum number of strata to consider. ]"
+    write(*,"(a)")     "   -basedir       [ absolute or relative path to working directory. ]"
+    write(*,"(a)")     "   -concdir       [ absolute or relative path to directory containing concentration files. ]"
+    write(*,"(a)")     "   -flowdir       [ absolute or relative path to directory containing flow (discharge) files. ]"
+    write(*,"(a)")     "   -resultsdir    [ absolute or relative path to directory in which results will be written. ]"
+    write(*,"(a)")     "   -minimize_ci   [ no argument; if present, genetic algorithm will minimize estimated confidence interval.]"
+    write(*,"(a)")     "   -minimize_mse  [ no argument; if present, genetic algorithm will minimize mean-squared error estimate.]"
+    write(*,"(a)")     "   -jackknife     [ no argument; if flag present, jackknife (leave-one-out) analysis will be conducted. ]"
+    write(*,"(a)")     "   -conc_units    [ default is 'mg/L'; other possibilities include 'ng/L', 'ug/L', 'g/L'. ]"
+    write(*,"(a)")     "   -flow_units    [ default is 'cfs'; other possibility is 'cms'. ]"
+    write(*,"(a)")     "   -load_units    [ default is 'kg'; other possibility is 'MT' (metric tons). ]"
+    write(*,"(a,/)")   "   -label         [ optional label to include in title of output R plot. ]"
     stop
   end if
 
@@ -153,6 +166,18 @@ program main
           "Unknown concentration units: "//trim(sBuf))
       end if
 
+    elseif(trim(sBuf)=="-flow_units") then
+      i = i + 1
+      call GET_COMMAND_ARGUMENT(i,sBuf)
+      if(trim(sBuf)=="cfs" .or. trim(sBuf)=="CFS") then
+        pConfig%iFlowUnitsCode = iCUBIC_FEET_PER_SEC
+      elseif(trim(sBuf)=="cms" .or. trim(sBuf)=="CMS") then
+        pConfig%iFlowUnitsCode = iCUBIC_METERS_PER_SEC
+      else
+        call Assert(lFALSE, &
+          "Unknown flow units: "//trim(sBuf))
+      end if
+
     else
       call Assert(lFALSE, &
        "Unknown program option: "//trim(sBuf))
@@ -230,13 +255,12 @@ program main
     if ( len_trim( pConfig%sBaseDirName ) > 0 ) then
 
       sConcFile = trim(pConfig%sBaseDirName)//"/"
-
       sFlowFile = trim(pConfig%sBaseDirName)//"/"
-
       sResultsDir = trim(pConfig%sBaseDirName)//"/"
 
     endif
 
+    ! if concentration directory has been given, tack onto end of concfile
     if ( len_trim( pConfig%sConcDirName ) > 0 )    &
       sConcFile = trim( sConcFile )//trim( pConfig%sConcDirName )//"/"
 
@@ -244,21 +268,10 @@ program main
       sFlowFile = trim( sFlowFile )//trim( pConfig%sFlowDirName )//"/"
 
     if ( len_trim( pConfig%sResultsDirName ) > 0 )    &
-      sResultsDir = trim( sResultsDir )//trim( pConfig%sResultsDirName )
-
-
-    print *, "'"//trim(sConcFile)//"'"
-
-    print *, len_trim( sConcFile ), len_trim(pConfig%sConcFileName)
+      sResultsDir = trim( sResultsDir )//trim( pConfig%sResultsDirName )//"/"
 
     sConcFile = trim( sConcFile )//trim(pConfig%sConcFileName)
-
-    print *, "'"//trim(sConcFile)//"'"
-
     sFlowFile = trim(sFlowFile)//trim(pConfig%sFlowFileName)
-
-    sResultsDir = trim( sResultsDir )//trim(pConfig%sResultsDirName)
-
 
     open (UNIT=LU_CONCDAT,iostat=iStat, &
       file=trim(sConcFile),status='OLD')
@@ -278,52 +291,33 @@ program main
       stop
     end if
 
-    if ( len_trim( sResultsDir)==0 ) then
-      open (UNIT=LU_STATS_OUT,iostat=iStat, file="beale_stats.txt",status='REPLACE')
-    else
-      open (UNIT=LU_STATS_OUT,iostat=iStat, file=trim(sResultsDir)//"/beale_stats.txt",status='REPLACE')
-    endif
+    sBuf = trim(sResultsDir)//"beale_stats.txt"
+    open (UNIT=LU_STATS_OUT,iostat=iStat, file=trim(sBuf),status='REPLACE')
 
-    call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-      "Could not open output stats file")
+    call Assert(LOGICAL(iStat==0, kind=T_LOGICAL), &
+      "Could not open output stats file: '"//trim(sBuf)//"'")
   !
   !----------------------------------------------------------------------
   ! Open files for output
   !----------------------------------------------------------------------
 
-    if ( len_trim( sResultsDir )==0 ) then
-      open (LU_SHORT_RPT,file=trim(pConfig%sShortOutputFileName), ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
-    else
-      open (LU_SHORT_RPT,file=trim(sResultsDir)//"/"//trim(pConfig%sShortOutputFileName), &
-        ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
-    endif
+    sBuf = trim(sResultsDir)//trim(pConfig%sShortOutputFileName)
+    open (LU_SHORT_RPT,file=trim(sBuf), ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
 
     if(iStat /= 0) then
-      print *, "Could not open summary output file: ", &
-        trim(pConfig%sShortOutputFileName)
+      print *, "Could not open summary output file: '"//trim(sBuf)//"'"
       stop
     end if
 
-    if ( len_trim( sResultsDir )==0 ) then
-      open (UNIT=LU_LOADS_OUT,iostat=iStat, file="flow_conc_load_daily.txt",access='APPEND')
-    else
-      open (UNIT=LU_LOADS_OUT,iostat=iStat, &
-        file=trim(sResultsDir)//"/flow_conc_load_daily.txt",access='APPEND')
-    endif
+    sBuf = trim(sResultsDir)//"flow_conc_load_daily.txt"
+    open (UNIT=LU_LOADS_OUT,iostat=iStat, file=trim(sBuf), access='APPEND')
 
-    call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-      "Could not open flow, conc, and load result file")
+    call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), "Could not open file for output: '"//trim(sBuf)//"'" )
 
-    if ( len_trim( sResultsDir )==0 ) then
-      open (LU_JACKKNIFE_OUT,file="jackknife_results.txt", ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
-    else
-      open (LU_JACKKNIFE_OUT,file=trim(sResultsDir)//"/"//"jackknife_results.txt", &
-        ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
-    endif
+    sBuf = trim(sResultsDir)//"jackknife_results.txt"
+    open (LU_JACKKNIFE_OUT,file=trim(sBuf), ACCESS='APPEND',FORM='FORMATTED',iostat=iStat)
 
-    call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), &
-      "Could not open jackknife output file")
-
+    call Assert(LOGICAL(iStat==0,kind=T_LOGICAL), "Could not open jackknife output file: '"//trim(sBuf)//"'")
 
     if(FTELL(LU_LOADS_OUT)==0) then
 
@@ -386,13 +380,15 @@ program main
       call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
          "Terminating due to error reading FLOW file" )
       if ( sRecord(1:1) == "#" ) cycle      ! Ignore comment lines
-      if(  sRecord(1:9) == "agency_cd" ) then
+      if(  sRecord(1:9) == "agency_cd" ) cycle
+      !@TODO: make this user configurable
+      if( sRecord(1:4) /= "USGS" ) cycle
         ! read another line and throw it away
-        read ( unit=LU_FLOWDAT, fmt="(a256)", iostat=iStat ) sRecord
-        call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-             "Terminating due to error reading FLOW file" )
-  	  cycle      ! Ignore header information
-      end if
+      !   read ( unit=LU_FLOWDAT, fmt="(a256)", iostat=iStat ) sRecord
+      !   call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+      !        "Terminating due to error reading FLOW file" )
+  	  ! cycle      ! Ignore header information
+      ! end if
 
       i=i+1
     end do

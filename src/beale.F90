@@ -580,12 +580,12 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStrata)
 !      print *, "ndays: ",ndays,"  nf(j): ",nf(j),"  r: ",r
 !      print *, "Flowmu: ",flowmu,"  avflow: ",avflow,"  avload: ",avload
 
-        write(LU_STD_OUT,FMT=*) ' ===> OLD AUTOBEALE OUTPUT <==='
-
-        write(LU_STD_OUT,FMT="(t2,'strata:',i3,2x,'ndays:',i4,2x,'nf(j):',f6.0,2x,'r:',f6.0)") &
-          j, ndays, nf(j), r(j)
-        write(LU_STD_OUT,FMT="(t2,'flowmu:',f12.3,2x,'avflow:',f12.3,2x,'avload:',f12.3)") &
-          flowmu, avflow, avload
+        ! write(LU_STD_OUT,FMT=*) ' ===> OLD AUTOBEALE OUTPUT <==='
+        !
+        ! write(LU_STD_OUT,FMT="(t2,'strata:',i3,2x,'ndays:',i4,2x,'nf(j):',f6.0,2x,'r:',f6.0)") &
+        !   j, ndays, nf(j), r(j)
+        ! write(LU_STD_OUT,FMT="(t2,'flowmu:',f12.3,2x,'avflow:',f12.3,2x,'avload:',f12.3)") &
+        !   flowmu, avflow, avload
 
         do l=1,ndays        !now calculate the third order terms
           if (pFlow(l)%iJulianDay<=pStratum%iEndDate .and. &
@@ -643,9 +643,9 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStrata)
 
           rmse(j)=(avload*flowmu/avflow)**2*(f1+f2+f3)
 
-          write(*,FMT="('RMSE (orig):',f16.3)") rmse(j)
-          print *, '   (this is the daily MSE for a stratum)'
-          print *, ' '
+          ! write(*,FMT="('RMSE (orig):',f16.3)") rmse(j)
+          ! print *, '   (this is the daily MSE for a stratum)'
+          ! print *, ' '
 
           tmp1=flowmu/avflow
           tmp2=avload*tmp1
@@ -700,17 +700,19 @@ subroutine bealecalc_orig(pConfig, pFlow, pConc, pStrata)
         ci=tval*sqrt(rmse(1)*0.133225_T_REAL)
       end if
 
-      write(LU_STD_OUT,fmt="(a)") 'OLD AUTOBEALE:     load         mse                df         ci'
+      write(LU_STD_OUT,fmt="(/,a)") 'RESULTS FROM OLD AUTOBEALE USING CURRENT STRATA BOUNDARIES'
+      write(LU_STD_OUT,fmt="(a)") '----------------------------------------------------------------'
+
+      write(LU_STD_OUT,fmt="(a)") '             load            mse       df              ci'
 
       if (pStrata%iCurrentNumberOfStrata.gt.1) then
-        write (LU_STD_OUT,11) 'OLD AUTOBEALE:',ce2*1000.,mse2*1.e+06, &
-           df,ci*1000.
+        write (LU_STD_OUT,11) ce2*1000.,mse2*1.e+06, df,ci*1000.
       else
-        write (LU_STD_OUT,11) 'OLD AUTOBEALE:',flowes(1)*0.365_T_REAL*1000., &
+        write (LU_STD_OUT,11) flowes(1)*0.365_T_REAL*1000., &
            rmse(1)*0.133225_T_REAL*1.e+06,r(1)-1.,ci*1000.
       end if
 
-11      format (a,2f16.2,f10.3,f16.2)
+11      format (2f16.2,f10.3,f16.2,/)
 
 
 300   return

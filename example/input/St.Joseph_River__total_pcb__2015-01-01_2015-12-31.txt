@@ -1,0 +1,11 @@
+St.Joseph River	total_pcb	4	14	2015	12	0	2.99470354539385	ng/l
+St.Joseph River	total_pcb	5	18	2015	12	0	3.84519350811486	ng/l
+St.Joseph River	total_pcb	6	18	2015	12	0	7.27358325457664	ng/l
+St.Joseph River	total_pcb	7	16	2015	12	0	1.87984550561798	ng/l
+St.Joseph River	total_pcb	7	30	2015	12	0	1.71232876712329	ng/l
+St.Joseph River	total_pcb	8	27	2015	12	0	2.3175433349262	ng/l
+St.Joseph River	total_pcb	9	14	2015	12	0	1.78364281595446	ng/l
+St.Joseph River	total_pcb	10	8	2015	12	0	3.17718813966134	ng/l
+St.Joseph River	total_pcb	10	22	2015	12	0	1.86765615337044	ng/l
+St.Joseph River	total_pcb	11	5	2015	12	0	1.37417619470925	ng/l
+St.Joseph River	total_pcb	11	19	2015	12	0	1.37497709960043	ng/l

@@ -1,0 +1,602 @@
+------------------------------------------------------------------------
+Statistics for JAN
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    0                    0
+
+mean:              4175.0 cfs
+minimum:           3095.5 cfs
+maximum:           5439.4 cfs
+
+------------------------------------------------------------------------
+Statistics for FEB
+Statistic                Flow                 Conc                 Load
+
+count:                     28                    0                    0
+
+mean:              3163.7 cfs
+minimum:           2751.6 cfs
+maximum:           3898.0 cfs
+
+------------------------------------------------------------------------
+Statistics for MAR
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    0                    0
+
+mean:              5261.5 cfs
+minimum:           2675.1 cfs
+maximum:           7630.5 cfs
+
+------------------------------------------------------------------------
+Statistics for APR
+Statistic                Flow                 Conc                 Load
+
+count:                     30                    1                    1
+
+mean:              4399.5 cfs            2.995 ng/       0.32760E-01 Kg
+minimum:           3872.6 cfs            2.995 ng/       0.32760E-01 Kg
+maximum:           4955.3 cfs            2.995 ng/       0.32760E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for MAY
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    1                    1
+
+mean:              3795.7 cfs            3.845 ng/       0.37390E-01 Kg
+minimum:           2891.7 cfs            3.845 ng/       0.37390E-01 Kg
+maximum:           6573.2 cfs            3.845 ng/       0.37390E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for JUN
+Statistic                Flow                 Conc                 Load
+
+count:                     30                    1                    1
+
+mean:              6357.9 cfs            7.274 ng/           0.14894 Kg
+minimum:           4407.6 cfs            7.274 ng/           0.14894 Kg
+maximum:           8777.0 cfs            7.274 ng/           0.14894 Kg
+
+------------------------------------------------------------------------
+Statistics for JUL
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    2                    2
+
+mean:              7566.0 cfs            1.796 ng/       0.31368E-01 Kg
+minimum:           4980.8 cfs            1.712 ng/       0.21667E-01 Kg
+maximum:          12509.4 cfs            1.880 ng/       0.41070E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for AUG
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    1                    1
+
+mean:              3552.9 cfs            2.318 ng/       0.16974E-01 Kg
+minimum:           2828.0 cfs            2.318 ng/       0.16974E-01 Kg
+maximum:           4980.8 cfs            2.318 ng/       0.16974E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for SEP
+Statistic                Flow                 Conc                 Load
+
+count:                     30                    1                    1
+
+mean:              2832.7 cfs            1.784 ng/       0.11451E-01 Kg
+minimum:           2407.6 cfs            1.784 ng/       0.11451E-01 Kg
+maximum:           4114.6 cfs            1.784 ng/       0.11451E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for OCT
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    2                    2
+
+mean:              2340.6 cfs            2.522 ng/       0.13918E-01 Kg
+minimum:           2000.0 cfs            1.868 ng/       0.10012E-01 Kg
+maximum:           2649.6 cfs            3.177 ng/       0.17824E-01 Kg
+
+------------------------------------------------------------------------
+Statistics for NOV
+Statistic                Flow                 Conc                 Load
+
+count:                     30                    2                    2
+
+mean:              2675.5 cfs            1.375 ng/       0.89751E-02 Kg
+minimum:           2356.7 cfs            1.374 ng/       0.87369E-02 Kg
+maximum:           3490.4 cfs            1.375 ng/       0.92133E-02 Kg
+
+------------------------------------------------------------------------
+Statistics for DEC
+Statistic                Flow                 Conc                 Load
+
+count:                     31                    0                    0
+
+mean:              3769.0 cfs
+minimum:           2726.1 cfs
+maximum:           7401.2 cfs
+
+------------------------------------------------------------------------
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ ===> BEGINNING OF SUMMARY for calculation with   1 strata
+ FLOW DATA: 'St_Joseph_River_discharge_dv_2015-01-01_2015-12-31.txt'
+ CONENTRATION DATA: 'St.Joseph_River__total_pcb__2015-01-01_2015-12-31.txt'
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Stratum number:     1
+      begins on:   01/01/2015   ends on:   12/31/2015
+      number of days in stratum:    365
+  
+      mean stratum FLOW:                               4166.7 cfs
+      RATIO stratum FLOW to sample FLOW:               0.99
+  
+      number of samples:        11
+  
+Date           Flow              Concentration       Load
+---------    -----------------  -----------------  -----------------
+   04/14/2015          4471.3 cfs               2.995 ng/L      0.32760E-01 Kg
+   05/18/2015          3974.5 cfs               3.845 ng/L      0.37390E-01 Kg
+   06/18/2015          8369.3 cfs               7.274 ng/L      0.14894 Kg
+   07/16/2015          8929.8 cfs               1.880 ng/L      0.41070E-01 Kg
+   07/30/2015          5171.9 cfs               1.712 ng/L      0.21667E-01 Kg
+   08/27/2015          2993.6 cfs               2.318 ng/L      0.16974E-01 Kg
+   09/14/2015          2624.2 cfs               1.784 ng/L      0.11451E-01 Kg
+   10/08/2015          2293.0 cfs               3.177 ng/L      0.17824E-01 Kg
+   10/22/2015          2191.1 cfs               1.868 ng/L      0.10012E-01 Kg
+   11/05/2015          2598.7 cfs               1.374 ng/L      0.87369E-02 Kg
+   11/19/2015          2738.8 cfs               1.375 ng/L      0.92133E-02 Kg
+                    -------------         -------------         -------------
+       MEAN:           4214.2 cfs             2.691 ng/        0.32367E-01 Kg
+  
+   Bias correction factor for STRATUM:                              1.018
+   Biased DAILY load estimate for STRATUM:                      0.32002E-01 Kg
+   Corrected DAILY load estimate for STRATUM:                   0.32567E-01 Kg
+   CI for corrected DAILY load estimate for STRATUM:            0.20009E-01 Kg
+  
+   MSE estimate for DAILY load estimate for STRATUM:            0.80512E-04 Kg**2
+   RMSE estimate for DAILY load estimate for STRATUM:           0.89728E-02 Kg
+  
+   Corrected load estimate for STRATUM:                                11.9 Kg
+   CI for load estimate for STRATUM:                             7.3034 Kg
+  
+   MSE estimate for load estimate for STRATUM:                         10.7 Kg**2
+   RMSE estimate for load estimate for STRATUM:                  3.2751 Kg
+  
+ ________________________________________________________________________________
+  SUMMARY OVER ALL STRATA:
+    NUMBER OF STRATA:   1
+        1      -- begins on:   01/01/2015   ends on:   12/31/2015
+
+
+    COMBINED LOAD:                              11.9 Kg
+    CONFIDENCE INTERVAL:                      7.3034 Kg
+  
+    COMBINED LOAD (PER YEAR):                   11.9 Kg/yr
+    COMBINED LOAD CI:                         7.3084 Kg/yr
+    TOTAL ANNUALIZED FLOW:          3.7208E+09 cubic meters
+  
+    COMBINED MSE:                               10.7 Kg**2
+    COMBINED RMSE:                            3.2751 Kg
+    COMBINED DEGREES FREEDOM:                     10.00
+    NUMBER of strata boundary sets evaluated:    116154
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ ===> END OF SUMMARY for calculation with   1 strata
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ ===> BEGINNING OF SUMMARY for calculation with   2 strata
+ FLOW DATA: 'St_Joseph_River_discharge_dv_2015-01-01_2015-12-31.txt'
+ CONENTRATION DATA: 'St.Joseph_River__total_pcb__2015-01-01_2015-12-31.txt'
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Stratum number:     1
+      begins on:   01/01/2015   ends on:   06/18/2015
+      number of days in stratum:    169
+  
+      mean stratum FLOW:                               4342.2 cfs
+      RATIO stratum FLOW to sample FLOW:               0.77
+  
+      number of samples:         3
+  
+Date           Flow              Concentration       Load
+---------    -----------------  -----------------  -----------------
+   04/14/2015          4471.3 cfs               2.995 ng/L      0.32760E-01 Kg
+   05/18/2015          3974.5 cfs               3.845 ng/L      0.37390E-01 Kg
+   06/18/2015          8369.3 cfs               7.274 ng/L      0.14894 Kg
+                    -------------         -------------         -------------
+       MEAN:           5605.0 cfs             4.704 ng/        0.73028E-01 Kg
+  
+   Bias correction factor for STRATUM:                              1.062
+   Biased DAILY load estimate for STRATUM:                      0.56574E-01 Kg
+   Corrected DAILY load estimate for STRATUM:                   0.60104E-01 Kg
+   CI for corrected DAILY load estimate for STRATUM:            0.71269E-01 Kg
+  
+   MSE estimate for DAILY load estimate for STRATUM:            0.27470E-03 Kg**2
+   RMSE estimate for DAILY load estimate for STRATUM:           0.16574E-01 Kg
+  
+   Corrected load estimate for STRATUM:                                10.2 Kg
+   CI for load estimate for STRATUM:                                   12.0 Kg
+  
+   MSE estimate for load estimate for STRATUM:                   7.8458     Kg**2
+   RMSE estimate for load estimate for STRATUM:                  2.8010 Kg
+  
+ ________________________________________________________________________________
+    Stratum number:     2
+      begins on:   06/19/2015   ends on:   12/31/2015
+      number of days in stratum:    196
+  
+      mean stratum FLOW:                               4015.3 cfs
+      RATIO stratum FLOW to sample FLOW:               1.09
+  
+      number of samples:         8
+  
+Date           Flow              Concentration       Load
+---------    -----------------  -----------------  -----------------
+   07/16/2015          8929.8 cfs               1.880 ng/L      0.41070E-01 Kg
+   07/30/2015          5171.9 cfs               1.712 ng/L      0.21667E-01 Kg
+   08/27/2015          2993.6 cfs               2.318 ng/L      0.16974E-01 Kg
+   09/14/2015          2624.2 cfs               1.784 ng/L      0.11451E-01 Kg
+   10/08/2015          2293.0 cfs               3.177 ng/L      0.17824E-01 Kg
+   10/22/2015          2191.1 cfs               1.868 ng/L      0.10012E-01 Kg
+   11/05/2015          2598.7 cfs               1.374 ng/L      0.87369E-02 Kg
+   11/19/2015          2738.8 cfs               1.375 ng/L      0.92133E-02 Kg
+                    -------------         -------------         -------------
+       MEAN:           3692.6 cfs             1.936 ng/        0.17118E-01 Kg
+  
+   Bias correction factor for STRATUM:                              0.997
+   Biased DAILY load estimate for STRATUM:                      0.18615E-01 Kg
+   Corrected DAILY load estimate for STRATUM:                   0.18567E-01 Kg
+   CI for corrected DAILY load estimate for STRATUM:            0.33514E-02 Kg
+  
+   MSE estimate for DAILY load estimate for STRATUM:            0.19996E-05 Kg**2
+   RMSE estimate for DAILY load estimate for STRATUM:           0.14141E-02 Kg
+  
+   Corrected load estimate for STRATUM:                          3.6392 Kg
+   CI for load estimate for STRATUM:                            0.65687 Kg
+  
+   MSE estimate for load estimate for STRATUM:                  0.76817E-01 Kg**2
+   RMSE estimate for load estimate for STRATUM:                 0.27716 Kg
+  
+ ________________________________________________________________________________
+  SUMMARY OVER ALL STRATA:
+    NUMBER OF STRATA:   2
+        1      -- begins on:   01/01/2015   ends on:   06/18/2015
+        2      -- begins on:   06/19/2015   ends on:   12/31/2015
+
+
+    COMBINED LOAD:                              13.8 Kg
+    CONFIDENCE INTERVAL:                        12.0 Kg
+  
+    COMBINED LOAD (PER YEAR):                   13.8 Kg/yr
+    COMBINED LOAD CI:                           12.0 Kg/yr
+    TOTAL ANNUALIZED FLOW:          3.7208E+09 cubic meters
+  
+    COMBINED MSE:                         7.9226     Kg**2
+    COMBINED RMSE:                            2.8147 Kg
+    COMBINED DEGREES FREEDOM:                      2.04
+    NUMBER of strata boundary sets evaluated:      4926
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ ===> END OF SUMMARY for calculation with   2 strata
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ ===> BEGINNING OF SUMMARY for calculation with   3 strata
+ FLOW DATA: 'St_Joseph_River_discharge_dv_2015-01-01_2015-12-31.txt'
+ CONENTRATION DATA: 'St.Joseph_River__total_pcb__2015-01-01_2015-12-31.txt'
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Stratum number:     1
+      begins on:   01/01/2015   ends on:   06/18/2015
+      number of days in stratum:    169
+  
+      mean stratum FLOW:                               4342.2 cfs
+      RATIO stratum FLOW to sample FLOW:               0.77
+  
+      number of samples:         3
+  
+Date           Flow              Concentration       Load
+---------    -----------------  -----------------  -----------------
+   04/14/2015          4471.3 cfs               2.995 ng/L      0.32760E-01 Kg
+   05/18/2015          3974.5 cfs               3.845 ng/L      0.37390E-01 Kg
+   06/18/2015          8369.3 cfs               7.274 ng/L      0.14894 Kg
+                    -------------         -------------         -------------
+       MEAN:           5605.0 cfs             4.704 ng/        0.73028E-01 Kg
+  
+   Bias correction factor for STRATUM:                              1.062
+   Biased DAILY load estimate for STRATUM:                      0.56574E-01 Kg
+   Corrected DAILY load estimate for STRATUM:                   0.60104E-01 Kg
+   CI for corrected DAILY load estimate for STRATUM:            0.71269E-01 Kg
+  
+   MSE estimate for DAILY load estimate for STRATUM:            0.27470E-03 Kg**2
+   RMSE estimate for DAILY load estimate for STRATUM:           0.16574E-01 Kg
+  
+   Corrected load estimate for STRATUM:                                10.2 Kg
+   CI for load estimate for STRATUM:                                   12.0 Kg
+  
+   MSE estimate for load estimate for STRATUM:                   7.8458     Kg**2
+   RMSE estimate for load estimate for STRATUM:                  2.8010 Kg
+  
+ ________________________________________________________________________________
+    Stratum number:     2
+      begins on:   06/19/2015   ends on:   10/16/2015
+      number of days in stratum:    120
+  
+      mean stratum FLOW:                               4627.6 cfs
+      RATIO stratum FLOW to sample FLOW:               1.05
+  
+      number of samples:         5
+  
+Date           Flow              Concentration       Load
+---------    -----------------  -----------------  -----------------
+   07/16/2015          8929.8 cfs               1.880 ng/L      0.41070E-01 Kg
+   07/30/2015          5171.9 cfs               1.712 ng/L      0.21667E-01 Kg
+   08/27/2015          2993.6 cfs               2.318 ng/L      0.16974E-01 Kg
+   09/14/2015          2624.2 cfs               1.784 ng/L      0.11451E-01 Kg
+   10/08/2015          2293.0 cfs               3.177 ng/L      0.17824E-01 Kg
+                    -------------         -------------         -------------
+       MEAN:           4402.5 cfs             2.174 ng/        0.21797E-01 Kg
+  
+   Bias correction factor for STRATUM:                              0.985
+   Biased DAILY load estimate for STRATUM:                      0.22912E-01 Kg
+   Corrected DAILY load estimate for STRATUM:                   0.22567E-01 Kg
+   CI for corrected DAILY load estimate for STRATUM:            0.59353E-02 Kg
+  
+   MSE estimate for DAILY load estimate for STRATUM:            0.45582E-05 Kg**2
+   RMSE estimate for DAILY load estimate for STRATUM:           0.21350E-02 Kg
+  
+   Corrected load estimate for STRATUM:                          2.7080 Kg
+   CI for load estimate for STRATUM:                            0.71224 Kg
+  
+   MSE estimate for load estimate for STRATUM:                  0.65638E-01 Kg**2
+   RMSE estimate for load estimate for STRATUM:                 0.25620 Kg
+  
+ ________________________________________________________________________________
+    Stratum number:     3
+      begins on:   10/17/2015   ends on:   12/31/2015
+      number of days in stratum:     76
+  
+      mean stratum FLOW:                               3048.6 cfs
+      RATIO stratum FLOW to sample FLOW:               1.21
+  
+      number of samples:         3
+  
+Date           Flow              Concentration       Load
+---------    -----------------  -----------------  -----------------
+   10/22/2015          2191.1 cfs               1.868 ng/L      0.10012E-01 Kg
+   11/05/2015          2598.7 cfs               1.374 ng/L      0.87369E-02 Kg
+   11/19/2015          2738.8 cfs               1.375 ng/L      0.92133E-02 Kg
+                    -------------         -------------         -------------
+       MEAN:           2509.5 cfs             1.539 ng/        0.93206E-02 Kg
+  
+   Bias correction factor for STRATUM:                              0.994
+   Biased DAILY load estimate for STRATUM:                      0.11323E-01 Kg
+   Corrected DAILY load estimate for STRATUM:                   0.11251E-01 Kg
+   CI for corrected DAILY load estimate for STRATUM:            0.49111E-02 Kg
+  
+   MSE estimate for DAILY load estimate for STRATUM:            0.13044E-05 Kg**2
+   RMSE estimate for DAILY load estimate for STRATUM:           0.11421E-02 Kg
+  
+   Corrected load estimate for STRATUM:                         0.85504 Kg
+   CI for load estimate for STRATUM:                            0.37324 Kg
+  
+   MSE estimate for load estimate for STRATUM:                  0.75343E-02 Kg**2
+   RMSE estimate for load estimate for STRATUM:                 0.86800E-01 Kg
+  
+ ________________________________________________________________________________
+  SUMMARY OVER ALL STRATA:
+    NUMBER OF STRATA:   3
+        1      -- begins on:   01/01/2015   ends on:   06/18/2015
+        2      -- begins on:   06/19/2015   ends on:   10/16/2015
+        3      -- begins on:   10/17/2015   ends on:   12/31/2015
+
+
+    COMBINED LOAD:                              13.7 Kg
+    CONFIDENCE INTERVAL:                        12.0 Kg
+  
+    COMBINED LOAD (PER YEAR):                   13.7 Kg/yr
+    COMBINED LOAD CI:                           12.0 Kg/yr
+    TOTAL ANNUALIZED FLOW:          3.7208E+09 cubic meters
+  
+    COMBINED MSE:                         7.9189     Kg**2
+    COMBINED RMSE:                            2.8141 Kg
+    COMBINED DEGREES FREEDOM:                      2.04
+    NUMBER of strata boundary sets evaluated:      7142
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ ===> END OF SUMMARY for calculation with   3 strata
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ ===> BEGINNING OF SUMMARY for calculation with   4 strata
+ FLOW DATA: 'St_Joseph_River_discharge_dv_2015-01-01_2015-12-31.txt'
+ CONENTRATION DATA: 'St.Joseph_River__total_pcb__2015-01-01_2015-12-31.txt'
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Stratum number:     1
+      begins on:   01/01/2015   ends on:   06/02/2015
+      number of days in stratum:    171
+  
+      mean stratum FLOW:                               4392.5 cfs
+      RATIO stratum FLOW to sample FLOW:               0.78
+  
+      number of samples:         2
+  
+Date           Flow              Concentration       Load
+---------    -----------------  -----------------  -----------------
+   04/14/2015          4471.3 cfs               2.995 ng/L      0.32760E-01 Kg
+   05/18/2015          3974.5 cfs               3.845 ng/L      0.37390E-01 Kg
+                    -------------         -------------         -------------
+       MEAN:           5605.0 cfs             4.704 ng/        0.73028E-01 Kg
+  
+   Bias correction factor for STRATUM:                         -99999.000
+   Biased DAILY load estimate for STRATUM:                      -99999. Kg
+   Corrected DAILY load estimate for STRATUM:                   -99999. Kg
+   CI for corrected DAILY load estimate for STRATUM:            0.72093E-01 Kg
+  
+   MSE estimate for DAILY load estimate for STRATUM:            -99999.     Kg**2
+   RMSE estimate for DAILY load estimate for STRATUM:                   NaN Kg
+  
+   Corrected load estimate for STRATUM:                         -99999. Kg
+   CI for load estimate for STRATUM:                                   12.3 Kg
+  
+   MSE estimate for load estimate for STRATUM:                  -99999.     Kg**2
+   RMSE estimate for load estimate for STRATUM:                         NaN Kg
+  
+ ________________________________________________________________________________
+    Stratum number:     2
+      begins on:   06/03/2015   ends on:   07/22/2015
+      number of days in stratum:     58
+  
+      mean stratum FLOW:                               4786.7 cfs
+      RATIO stratum FLOW to sample FLOW:               0.84
+  
+      number of samples:         2
+  
+Date           Flow              Concentration       Load
+---------    -----------------  -----------------  -----------------
+   06/18/2015          8369.3 cfs               7.274 ng/L      0.14894 Kg
+   07/16/2015          8929.8 cfs               1.880 ng/L      0.41070E-01 Kg
+                    -------------         -------------         -------------
+       MEAN:           5698.4 cfs             1.970 ng/        0.26570E-01 Kg
+  
+   Bias correction factor for STRATUM:                         -99999.000
+   Biased DAILY load estimate for STRATUM:                      -99999. Kg
+   Corrected DAILY load estimate for STRATUM:                   -99999. Kg
+   CI for corrected DAILY load estimate for STRATUM:            0.60910E-02 Kg
+  
+   MSE estimate for DAILY load estimate for STRATUM:            -99999.     Kg**2
+   RMSE estimate for DAILY load estimate for STRATUM:                   NaN Kg
+  
+   Corrected load estimate for STRATUM:                         -99999. Kg
+   CI for load estimate for STRATUM:                            0.35328 Kg
+  
+   MSE estimate for load estimate for STRATUM:                  -99999.     Kg**2
+   RMSE estimate for load estimate for STRATUM:                         NaN Kg
+  
+ ________________________________________________________________________________
+    Stratum number:     3
+      begins on:   07/23/2015   ends on:   09/04/2015
+      number of days in stratum:     54
+  
+      mean stratum FLOW:                               2673.0 cfs
+      RATIO stratum FLOW to sample FLOW:               1.07
+  
+      number of samples:         2
+  
+Date           Flow              Concentration       Load
+---------    -----------------  -----------------  -----------------
+   07/30/2015          5171.9 cfs               1.712 ng/L      0.21667E-01 Kg
+   08/27/2015          2993.6 cfs               2.318 ng/L      0.16974E-01 Kg
+                    -------------         -------------         -------------
+       MEAN:           2509.5 cfs             1.539 ng/        0.93206E-02 Kg
+  
+   Bias correction factor for STRATUM:                         -99999.000
+   Biased DAILY load estimate for STRATUM:                      -99999. Kg
+   Corrected DAILY load estimate for STRATUM:                   -99999. Kg
+   CI for corrected DAILY load estimate for STRATUM:            0.43046E-02 Kg
+  
+   MSE estimate for DAILY load estimate for STRATUM:            -99999.     Kg**2
+   RMSE estimate for DAILY load estimate for STRATUM:                   NaN Kg
+  
+   Corrected load estimate for STRATUM:                         -99999. Kg
+   CI for load estimate for STRATUM:                            0.23245 Kg
+  
+   MSE estimate for load estimate for STRATUM:                  -99999.     Kg**2
+   RMSE estimate for load estimate for STRATUM:                         NaN Kg
+  
+ ________________________________________________________________________________
+    Stratum number:     4
+      begins on:   09/05/2015   ends on:   12/31/2015
+      number of days in stratum:      0
+  
+      mean stratum FLOW:                             0.00     cfs
+      RATIO stratum FLOW to sample FLOW:                NaN
+  
+      number of samples:         0
+  
+Date           Flow              Concentration       Load
+---------    -----------------  -----------------  -----------------
+   09/14/2015          2624.2 cfs               1.784 ng/L      0.11451E-01 Kg
+   10/08/2015          2293.0 cfs               3.177 ng/L      0.17824E-01 Kg
+   10/22/2015          2191.1 cfs               1.868 ng/L      0.10012E-01 Kg
+   11/05/2015          2598.7 cfs               1.374 ng/L      0.87369E-02 Kg
+   11/19/2015          2738.8 cfs               1.375 ng/L      0.92133E-02 Kg
+                    -------------         -------------         -------------
+       MEAN:         0.00     cfs          0.00     ng/             0.0000 Kg
+  
+   Bias correction factor for STRATUM:                         -99999.000
+   Biased DAILY load estimate for STRATUM:                      -99999. Kg
+   Corrected DAILY load estimate for STRATUM:                   -99999. Kg
+   CI for corrected DAILY load estimate for STRATUM:             0.0000 Kg
+  
+   MSE estimate for DAILY load estimate for STRATUM:            -99999.     Kg**2
+   RMSE estimate for DAILY load estimate for STRATUM:                   NaN Kg
+  
+   Corrected load estimate for STRATUM:                         -99999. Kg
+   CI for load estimate for STRATUM:                             0.0000 Kg
+  
+   MSE estimate for load estimate for STRATUM:                  -99999.     Kg**2
+   RMSE estimate for load estimate for STRATUM:                         NaN Kg
+  
+ ________________________________________________________________________________
+  SUMMARY OVER ALL STRATA:
+    NUMBER OF STRATA:   4
+        1      -- begins on:   01/01/2015   ends on:   06/02/2015
+        2      -- begins on:   06/03/2015   ends on:   07/22/2015
+        3      -- begins on:   07/23/2015   ends on:   09/04/2015
+        4      -- begins on:   09/05/2015   ends on:   12/31/2015
+
+
+    COMBINED LOAD:                      -0.17977+309 Kg
+    CONFIDENCE INTERVAL:                -0.17977+309 Kg
+  
+    COMBINED LOAD (PER YEAR):           -0.17977+309 Kg/yr
+    COMBINED LOAD CI:                   -0.17977+309 Kg/yr
+    TOTAL ANNUALIZED FLOW:          3.7208E+09 cubic meters
+  
+    COMBINED MSE:                       -0.17977+309 Kg**2
+    COMBINED RMSE:                      -0.17977+309 Kg
+    COMBINED DEGREES FREEDOM:                      0.00
+    NUMBER of strata boundary sets evaluated:    116154
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ ===> END OF SUMMARY for calculation with   4 strata
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+ 
+ ================================================================================
+ SUMMARY of Optimum Strata:
+ ================================================================================
+  SUMMARY OVER ALL STRATA:
+    NUMBER OF STRATA:   1
+        1      -- begins on:   01/01/2015   ends on:   12/31/2015
+
+
+    COMBINED LOAD:                            8.2582 Kg
+    CONFIDENCE INTERVAL:                      2.2108 Kg
+  
+    COMBINED LOAD (PER YEAR):                 8.2582 Kg/yr
+    COMBINED LOAD CI:                         2.2123 Kg/yr
+    TOTAL ANNUALIZED FLOW:          3.7208E+09 cubic meters
+  
+    COMBINED MSE:                        0.95695     Kg**2
+    COMBINED RMSE:                           0.97824 Kg
+    COMBINED DEGREES FREEDOM:                      9.00
+    NUMBER of strata boundary sets evaluated:    116154
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ ===> END OF SUMMARY for calculation with   1 strata
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+ 
+ JACKKNIFE ESTIMATES:
+St_Joseph_River_discharge_dv_2015-01-01_2015-12-31.txt                                                                                                                                                                                                           01/01/2015           12/31/2015          
+   1              12.0 Kg                                                                                                                                                                                                                                             
+   2              11.7 Kg                                                                                                                                                                                                                                             
+   3        8.2582 Kg                                                                                                                                                                                                                                                 
+   4        8.2582 Kg                                                                                                                                                                                                                                                 
+   5        8.2582 Kg                                                                                                                                                                                                                                                 
+   6        8.2582 Kg                                                                                                                                                                                                                                                 
+   7        8.2582 Kg                                                                                                                                                                                                                                                 
+   8        8.2582 Kg                                                                                                                                                                                                                                                 
+   9        8.2582 Kg                                                                                                                                                                                                                                                 
+  10        8.2582 Kg                                                                                                                                                                                                                                                 
+  11        8.2582 Kg                                                                                                                                                                                                                                                 
+Theta Hat:            8.9096
+Std Err:            4.3746
+CI:            9.7553

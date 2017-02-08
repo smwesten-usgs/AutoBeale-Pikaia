@@ -34,6 +34,7 @@ contains
     integer (kind=T_INT) :: iMonth,iDay,iYear
     real (kind=T_REAL) :: rOffset,rMaxConc
 
+
     iBMonth = pFlow(1)%iMonth
     iBDay = pFlow(1)%iDay
     iBYear = pFlow(1)%iYear
@@ -97,6 +98,7 @@ contains
 
     call CleanUp(sOutputFilePrefix)
 
+    ! need to ensure forward slashes are used in order to keep R happy
     do i=1,len_trim(pConfig%sBaseDirName)
       if(pConfig%sBaseDirName(i:i)=="\") then
         s_WD(i:i) = "/"
@@ -104,6 +106,8 @@ contains
         s_WD(i:i) = pConfig%sBaseDirName(i:i)
       end if
     end do
+
+    if ( ( scan( s_WD, "/", back=.true.) /= 1 ) .and. len_trim( s_WD ) > 0 )  s_WD = trim(s_WD)//"/"
 
     do i=1,len_trim(pConfig%sResultsDirName)
       if(pConfig%sResultsDirName(i:i)=="\") then
@@ -113,11 +117,11 @@ contains
       end if
     end do
 
-    sR_ScriptName = trim(pConfig%sBaseDirName)//trim(pConfig%sResultsDirName) &
-          //trim(sOutputFilePrefix)//".R"
+    if ( ( scan( s_RD, "/", back=.true.) /= 1 ) .and. len_trim( s_RD ) > 0 )  s_RD = trim(s_RD)//"/"
 
-    sPDF_PNG_Prefix = trim(s_WD)//trim(s_RD) &
-        //trim(sOutputFilePrefix)
+    sR_ScriptName = trim(s_WD)//trim(s_RD)//trim(sOutputFilePrefix)//".R"
+
+    sPDF_PNG_Prefix = trim(s_WD)//trim(s_RD)//trim(sOutputFilePrefix)
 
     open (LU_R_SCRIPT, &
        file=sR_ScriptName, &

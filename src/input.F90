@@ -45,13 +45,15 @@ subroutine read_data(pConfig, pFlow, pConc)
     call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
        "Terminating due to error reading FLOW file" )
     if ( sRecord(1:1) == "#" ) cycle      ! Ignore comment lines
-    if(  sRecord(1:9) == "agency_cd" ) then
-      ! read another line and throw it away
-      read ( unit=LU_FLOWDAT, fmt="(a256)", iostat=iStat ) sRecord
-      call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
-           "Terminating due to error reading FLOW file" )
-	  cycle      ! Ignore header information
-    end if
+    if(  sRecord(1:9) == "agency_cd" ) cycle
+    !@TODO: make this user configurable!!
+    if ( sRecord(1:4) /= "USGS" ) cycle
+    !   ! read another line and throw it away
+    !   read ( unit=LU_FLOWDAT, fmt="(a256)", iostat=iStat ) sRecord
+    !   call Assert( LOGICAL( iStat == 0,kind=T_LOGICAL), &
+    !        "Terminating due to error reading FLOW file" )
+	  ! cycle      ! Ignore header information
+    ! end if
 
     ! if no read errors, increment loop counter
     i=i+1

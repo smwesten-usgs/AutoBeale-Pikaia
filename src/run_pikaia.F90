@@ -171,7 +171,7 @@ subroutine pikaia_driver(pConfig, pBestConfig, pStrata, pBestStrata, pStats, pBe
 
   end if
 
-!  call bealecalc_orig(pConfig, pFlow, pConc, pStrata)
+  call bealecalc_orig(pConfig, pFlow, pConc, pStrata)
   !
   ! Now begin calculations *with* stratification
   !

@@ -36,16 +36,19 @@ subroutine create_new_strata_from_genome( pConfig, x, pStrata )
   pStratum => pStrata%pStratum( pStrata%iCurrentNumberOfStrata )
   pStratum%iEndDate = pConfig%iEndDate
 
-  ! assign strata bounds
-  do indx=1, ubound( x, 1 )
-    iStrataBoundary = pConfig%iStartDate + iDeltaDate * x(indx)
-    ! assign strata boundaries
-    pStratum => pStrata%pStratum(indx)
-    pStratum%iEndDate = iStrataBoundary
+  if ( pStrata%iCurrentNumberOfStrata > 1 ) then
+    ! assign strata bounds; # bounds = # strata -1
+    do indx=1, ubound( x, 1 )
+      iStrataBoundary = pConfig%iStartDate + iDeltaDate * x(indx)
+      ! assign strata boundaries
+      pStratum => pStrata%pStratum(indx)
+      pStratum%iEndDate = iStrataBoundary
 
-    pStratum => pStrata%pStratum(indx+1)
-    pStratum%iStartDate = iStrataBoundary + 1
-  end do
+      pStratum => pStrata%pStratum(indx+1)
+      pStratum%iStartDate = iStrataBoundary + 1
+    end do
+
+  endif
 
   ! do indx=1, pStrata%iCurrentNumberOfStrata-1
   !   pStratum => pStrata%pStratum(indx)
