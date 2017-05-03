@@ -429,21 +429,19 @@ subroutine clean_concentration_data(pFlow,pConc)
 
   type (CONC_T), dimension(:), pointer :: pCopy
 
-  integer (kind=T_INT) :: i, iCount, iStat, iNumValues, j, k
+  integer (kind=T_INT) :: i, iCount, iStat, iNumValues, iNumValidValues, j, k
+  integer (kind=T_INT) :: iLastIndex
+  real (kind=T_REAL)   :: rSum, rMean
 
   logical    :: found_match
 
-  iCount = 0
+  ! count number of non-zero concentration values within the time range
+  ! covered by the discharge data
+  iCount = count( ( pConc%iJulianDay >= MINVAL(pFlow%iJulianDay)         &
+              .and. pConc%iJulianDay <= MAXVAL(pFlow%iJulianDay)         &
+              .and. pConc%rConc > 0. ) )
 
-  ! here we are counting the number of days within the range of interest
-  ! for which we have one or more concentration data available
-  do i=MINVAL(pFlow%iJulianDay),MAXVAL(pFlow%iJulianDay)
-    if(COUNT(pConc%iJulianDay==i)>0) then
-      iCount=iCount+1
-    end if
-  end do
-
-  ALLOCATE( pCopy( count( pConc%rConc >= 0. ) ),STAT=iStat)
+  ALLOCATE( pCopy( iCount ),STAT=iStat)
   call Assert(iStat==0, &
     "Problem allocating memory in function clean_conc_data")
 
@@ -451,21 +449,42 @@ subroutine clean_concentration_data(pFlow,pConc)
   ! now iterate over the date range again, copying and averaging where
   ! necessary
   do i=MINVAL(pFlow%iJulianDay),MAXVAL(pFlow%iJulianDay)
-    iNumValues = COUNT( pConc%iJulianDay==i  )
+    iNumValues = COUNT( pConc%iJulianDay==i )
     if( iNumValues > 0. ) then
-      iCount = iCount + 1
+
+      iNumValidValues = 0
       do j=1,SIZE(pConc)
-        if ( pConc(j)%rConc < 0. ) cycle
+        if ( pConc(j)%rConc <= 0. ) cycle
+
+         ! we have a concentration value for this day; is it valid? if so, store the index value
         if(pConc(j)%iJulianDay == i) then
-          pCopy(iCount) = pConc(j)
-          if(iNumValues > 1) then
-            pCopy(iCount)%iHour = 99
-            pCopy(iCount)%iMinute = 99
-            pCopy(iCount)%rConc = SUM(pConc%rConc,pConc%iJulianDay==i) / iNumValues
-            exit
-          end if
+          if ( pConc(j)%rConc > 0.0 )  then
+            iNumValidValues = iNumValidValues + 1
+            iLastIndex = j
+          endif
+        endif
+
+      enddo
+
+      if ( iNumValidValues > 0 )  then
+
+        ! only advance the count if we have valid data for this date
+        iCount = iCount + 1
+
+        ! for now, just copy over values from the last valid concentration record found
+        pCopy(iCount) = pConc( iLastIndex )
+
+        ! if more than one value is present for this date, substitute the mean value for the day
+        if(iNumValidValues > 1) then
+          pCopy(iCount)%iHour = 99
+          pCopy(iCount)%iMinute = 99
+          rSum = 0.0
+          do k=1, size( pConc )
+            if ( pConc(k)%iJulianDay == i .and. pConc(k)%rConc > 0.0 )  rSum = rSum + pConc(k)%rConc
+          enddo
+          pCopy( iCount )%rConc = rSum / iNumValidValues
         end if
-      end do
+      endif
     end if
   end do
 

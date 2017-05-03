@@ -433,6 +433,12 @@ program main
     ! duplicates
     pConfig%iNumConcPoints = size(pConc)
 
+    write( sBuf, fmt="(i8)") pConfig%iNumConcPoints
+
+    call assert( pConfig%iNumConcPoints >= pConfig%iMinSamplesPerStratum,                &
+      "Not enough concentration data to run Autobeale: only "//trim( adjustl( sBuf ) )   &
+      //" non-zero value(s). Stopping." )
+
     call clean_flow_data(pFlow)
 
     ! *******************************************************************
@@ -498,7 +504,7 @@ program main
 
         call reset_combined_stats(pStats)
         call reset_combined_stats(pBestStats)
-        
+
         ! subroutine "pikaia_driver" takes care of iterating over multiple strata
         ! to determine the optimum stratification scheme
         call pikaia_driver(pConfig, pBestConfig, pStrata, pBestStrata, pStats, pBestStats )
